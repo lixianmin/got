@@ -13,14 +13,14 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type WaitClose struct {
-	DisposeChan chan struct{}
-	m           sync.Mutex
-	done        int32
+	CloseChan chan struct{}
+	m         sync.Mutex
+	done      int32
 }
 
 func NewWaitClose() *WaitClose {
 	var wd = &WaitClose{
-		DisposeChan: make(chan struct{}),
+		CloseChan: make(chan struct{}),
 	}
 
 	return wd
@@ -31,7 +31,7 @@ func (wd *WaitClose) Close() error {
 		wd.m.Lock()
 		if 0 == wd.done {
 			atomic.StoreInt32(&wd.done, 1)
-			close(wd.DisposeChan)
+			close(wd.CloseChan)
 		}
 		wd.m.Unlock()
 	}
