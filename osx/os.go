@@ -21,13 +21,13 @@ func IsPathExist(path string) bool {
 	return true
 }
 
-func EnsureDir(path string, perm os.FileMode) error {
-	if !IsPathExist(path) {
-		return os.Mkdir(path, perm)
-	}
-
-	return nil
-}
+//func EnsureDir(path string, perm os.FileMode) error {
+//	if !IsPathExist(path) {
+//		return os.MkdirAll(path, perm)	// perm 常为 0700
+//	}
+//
+//	return nil
+//}
 
 // 判断所给路径是否为文件夹
 func IsDir(path string) bool {
