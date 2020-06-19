@@ -1,4 +1,4 @@
-package webtools
+package webx
 
 import (
 	"io/ioutil"
