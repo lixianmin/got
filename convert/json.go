@@ -12,17 +12,17 @@ Copyright (C) - All Rights Reserved
 var _toJson = json.Marshal
 var _fromJson = json.Unmarshal
 
-func InitJson(toJson func(v interface{}) ([]byte, error), fromJson func(data []byte, v interface{}) error) {
-	if toJson == nil {
-		panic("toJson is nil")
+func InitJson(marshal func(v interface{}) ([]byte, error), unmarshal func(data []byte, v interface{}) error) {
+	if marshal == nil {
+		panic("marshal is nil")
 	}
 
-	if fromJson == nil {
-		panic("fromJson is nil.")
+	if unmarshal == nil {
+		panic("unmarshal is nil.")
 	}
 
-	_toJson = toJson
-	_fromJson = fromJson
+	_toJson = marshal
+	_fromJson = unmarshal
 }
 
 func ToJson(v interface{}) ([]byte, error) {

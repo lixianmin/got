@@ -18,9 +18,11 @@ func IsPathExist(path string) bool {
 		}
 		return false
 	}
+
 	return true
 }
 
+// 使用 os.MkdirAll()代替
 //func EnsureDir(path string, perm os.FileMode) error {
 //	if !IsPathExist(path) {
 //		return os.MkdirAll(path, perm)	// perm 常为 0700
