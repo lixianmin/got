@@ -64,12 +64,13 @@ func DumpIfPanic() {
 	var pid = os.Getpid()                   // 获取进程ID
 
 	// 设定时间格式
-	var timestamp = now.Format(time.RFC3339)
+	const format = "2020-06-30T14:02:02"
+	var timestamp = now.Format(format)
 	// 保存错误信息文件名:程序名-进程ID-当前时间（年月日时分秒）
 	var logDir = "logs"
 	var logFilePath = fmt.Sprintf("%s/dump.%s.%d.%s.log", logDir, exeName, pid, timestamp)
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {
-		_ = os.MkdirAll(logDir, os.ModePerm)
+		_ = os.MkdirAll(logDir, 0700)
 	}
 
 	fmt.Println("dump to file ", logFilePath)
