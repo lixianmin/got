@@ -3,6 +3,7 @@ package loom
 import (
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 /********************************************************************
@@ -26,19 +27,30 @@ func NewWaitClose() *WaitClose {
 	return wd
 }
 
-func (wd *WaitClose) Close() error {
-	if 0 == atomic.LoadInt32(&wd.done) {
-		wd.m.Lock()
-		if 0 == wd.done {
-			atomic.StoreInt32(&wd.done, 1)
-			close(wd.CloseChan)
+func (wc *WaitClose) Close() error {
+	if 0 == atomic.LoadInt32(&wc.done) {
+		wc.m.Lock()
+		if 0 == wc.done {
+			atomic.StoreInt32(&wc.done, 1)
+			close(wc.CloseChan)
 		}
-		wd.m.Unlock()
+		wc.m.Unlock()
 	}
 
 	return nil
 }
 
-func (wd *WaitClose) IsClosed() bool {
-	return atomic.LoadInt32(&wd.done) == 1
+func (wc *WaitClose) WaitUtil(timeout time.Duration) bool {
+	var timer = time.NewTimer(timeout)
+	select {
+	case <-wc.CloseChan:
+		timer.Stop()
+		return true
+	case <-timer.C:
+		return false
+	}
+}
+
+func (wc *WaitClose) IsClosed() bool {
+	return atomic.LoadInt32(&wc.done) == 1
 }
