@@ -25,7 +25,7 @@ type BackObject struct {
 // 将loader()放到构造方法中，而不是将原来那样放到Get()方法中，是因为需要把loader()的closure固定下来。在Get()中有一个风险是
 // 可能会无意中在closure中使用了变化的参数。因为loader()是周期性调用的，因此不应该使用可变的参数。
 // 另外，每次调用Get()时创建新的closure也是一个额外的开销
-func NewBackObject(loadInterval time.Duration, loader func() (interface{}, error)) *BackObject {
+func NewBackObject(loadInterval time.Duration, loader func() (loaded interface{}, err error)) *BackObject {
 	if loadInterval < 0 || int64(loadInterval) >= time.Now().UnixNano() {
 		var message = "Invalid loadInterval= " + strconv.Itoa(int(loadInterval))
 		panic(message)
