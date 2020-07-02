@@ -1,6 +1,7 @@
 package loom
 
 import (
+	"math/rand"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -59,8 +60,12 @@ func (item *BackObject) Get() interface{} {
 			// 每隔一段时间重新加载一次数据
 			go func() {
 				defer DumpIfPanic()
+				var raw = int64(item.loadInterval)
+				var step = raw >> 4
 				for {
-					time.Sleep(item.loadInterval)
+					// 将加载的间隔时间随机化，避免缓存雪崩
+					var interval = raw + (rand.Int63n(step) << 1) - step
+					time.Sleep(time.Duration(interval))
 					if data, err := item.loader(); err == nil {
 						item.data.Store(data)
 					}
