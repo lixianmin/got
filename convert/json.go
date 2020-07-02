@@ -25,10 +25,19 @@ func InitJson(marshal func(v interface{}) ([]byte, error), unmarshal func(data [
 	_fromJson = unmarshal
 }
 
-func ToJson(v interface{}) ([]byte, error) {
+func ToJsonE(v interface{}) ([]byte, error) {
 	return _toJson(v)
 }
 
-func FromJson(data []byte, v interface{}) error {
+func ToJson(v interface{}) []byte {
+	var result, _ = _toJson(v)
+	return result
+}
+
+func FromJsonE(data []byte, v interface{}) error {
 	return _fromJson(data, v)
+}
+
+func FromJson(data []byte, v interface{}) {
+	_ = _fromJson(data, v)
 }
