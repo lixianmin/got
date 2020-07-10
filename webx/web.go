@@ -1,6 +1,7 @@
 package webx
 
 import (
+	"context"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -13,16 +14,24 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-func CopyHeader(dst, src http.Header) {
-	for k, vv := range src {
-		for _, v := range vv {
-			dst.Add(k, v)
-		}
-	}
-}
+//func CopyHeader(dst, src http.Header) {
+//	for k, vv := range src {
+//		for _, v := range vv {
+//			dst.Add(k, v)
+//		}
+//	}
+//}
 
 func Get(url string, initHeader func(header http.Header)) ([]byte, error) {
-	request, err := http.NewRequest("GET", url, nil)
+	return Request(context.Background(), "GET", url, initHeader)
+}
+
+func Post(url string, initHeader func(header http.Header)) ([]byte, error) {
+	return Request(context.Background(), "POST", url, initHeader)
+}
+
+func Request(ctx context.Context, method string, url string, initHeader func(header http.Header)) ([]byte, error) {
+	request, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +41,7 @@ func Get(url string, initHeader func(header http.Header)) ([]byte, error) {
 	}
 
 	var client = http.Client{
-		Timeout: time.Second * 20, // 控制从链接建立到返回的整个生命周期的时间
+		Timeout: time.Second * 10, // 控制从链接建立到返回的整个生命周期的时间
 	}
 
 	response, err := client.Do(request)
