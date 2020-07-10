@@ -15,8 +15,8 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type RequestArgs struct {
-	RequestBuilder func(request *http.Request) // 初始化request
-	Timeout        time.Duration               // 控制从链接建立到返回的整个生命周期的时间
+	Builder func(request *http.Request) // 配置request
+	Timeout time.Duration               // 控制从链接建立到返回的整个生命周期的时间
 }
 
 func emptyRequestBuilder(request *http.Request) {
@@ -32,8 +32,8 @@ func checkRequestArgs(args *RequestArgs) *RequestArgs {
 		args.Timeout = 10 * time.Second
 	}
 
-	if args.RequestBuilder == nil {
-		args.RequestBuilder = emptyRequestBuilder
+	if args.Builder == nil {
+		args.Builder = emptyRequestBuilder
 	}
 
 	return args
@@ -64,7 +64,7 @@ func Request(ctx context.Context, method string, url string, args *RequestArgs) 
 	}
 
 	// 重新配置request
-	args.RequestBuilder(request)
+	args.Builder(request)
 
 	var client = http.Client{
 		Timeout: args.Timeout,
