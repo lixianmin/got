@@ -14,6 +14,31 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
+type RequestArgs struct {
+	initRequest func(request *http.Request) // 初始化request
+	Timeout     time.Duration               // 控制从链接建立到返回的整个生命周期的时间
+}
+
+func emptyInitRequest(request *http.Request) {
+
+}
+
+func checkRequestArgs(args *RequestArgs) *RequestArgs {
+	if nil == args {
+		args = &RequestArgs{}
+	}
+
+	if args.Timeout <= 0 {
+		args.Timeout = 10 * time.Second
+	}
+
+	if args.initRequest == nil {
+		args.initRequest = emptyInitRequest
+	}
+
+	return args
+}
+
 //func CopyHeader(dst, src http.Header) {
 //	for k, vv := range src {
 //		for _, v := range vv {
@@ -22,26 +47,24 @@ Copyright (C) - All Rights Reserved
 //	}
 //}
 
-func Get(url string, initRequest func(request *http.Request)) ([]byte, error) {
-	return Request(context.Background(), "GET", url, initRequest)
+func Get(url string, args *RequestArgs) ([]byte, error) {
+	return Request(context.Background(), "GET", url, args)
 }
 
-func Post(url string, initRequest func(request *http.Request)) ([]byte, error) {
-	return Request(context.Background(), "POST", url, initRequest)
+func Post(url string, args *RequestArgs) ([]byte, error) {
+	return Request(context.Background(), "POST", url, args)
 }
 
-func Request(ctx context.Context, method string, url string, initRequest func(request *http.Request)) ([]byte, error) {
+func Request(ctx context.Context, method string, url string, args *RequestArgs) ([]byte, error) {
+	args = checkRequestArgs(args)
+
 	request, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if initRequest != nil {
-		initRequest(request)
-	}
-
 	var client = http.Client{
-		Timeout: time.Second * 10, // 控制从链接建立到返回的整个生命周期的时间
+		Timeout: args.Timeout,
 	}
 
 	response, err := client.Do(request)
