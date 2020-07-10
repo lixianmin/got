@@ -22,22 +22,22 @@ Copyright (C) - All Rights Reserved
 //	}
 //}
 
-func Get(url string, initHeader func(header http.Header)) ([]byte, error) {
-	return Request(context.Background(), "GET", url, initHeader)
+func Get(url string, initRequest func(request *http.Request)) ([]byte, error) {
+	return Request(context.Background(), "GET", url, initRequest)
 }
 
-func Post(url string, initHeader func(header http.Header)) ([]byte, error) {
-	return Request(context.Background(), "POST", url, initHeader)
+func Post(url string, initRequest func(request *http.Request)) ([]byte, error) {
+	return Request(context.Background(), "POST", url, initRequest)
 }
 
-func Request(ctx context.Context, method string, url string, initHeader func(header http.Header)) ([]byte, error) {
+func Request(ctx context.Context, method string, url string, initRequest func(request *http.Request)) ([]byte, error) {
 	request, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if initHeader != nil {
-		initHeader(request.Header)
+	if initRequest != nil {
+		initRequest(request)
 	}
 
 	var client = http.Client{
@@ -49,8 +49,8 @@ func Request(ctx context.Context, method string, url string, initHeader func(hea
 		return nil, err
 	}
 
-	var body = response.Body
-	defer body.Close()
-	bodyBytes, err := ioutil.ReadAll(body)
+	var responseBody = response.Body
+	defer responseBody.Close()
+	bodyBytes, err := ioutil.ReadAll(responseBody)
 	return bodyBytes, err
 }
