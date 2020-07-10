@@ -23,9 +23,10 @@ func IsPathExist(path string) bool {
 }
 
 // 使用 os.MkdirAll()代替
+// perm 常为 0600 -> r:4, w:2, x:1 , 0600的意思是 owner可rw，参考：https://chmodcommand.com/chmod-600/
 //func EnsureDir(path string, perm os.FileMode) error {
 //	if !IsPathExist(path) {
-//		return os.MkdirAll(path, perm)	// perm 常为 0700
+//		return os.MkdirAll(path, perm)
 //	}
 //
 //	return nil
