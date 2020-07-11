@@ -23,20 +23,21 @@ func emptyRequestBuilder(request *http.Request) {
 
 }
 
-func checkRequestArgs(args *RequestArgs) *RequestArgs {
-	if nil == args {
-		args = &RequestArgs{}
+func checkRequestArgs(args ...RequestArgs) RequestArgs {
+	var arg = RequestArgs{}
+	if len(args) > 0 {
+		arg = args[0]
 	}
 
-	if args.Timeout <= 0 {
-		args.Timeout = 10 * time.Second
+	if arg.Timeout <= 0 {
+		arg.Timeout = 10 * time.Second
 	}
 
-	if args.Builder == nil {
-		args.Builder = emptyRequestBuilder
+	if arg.Builder == nil {
+		arg.Builder = emptyRequestBuilder
 	}
 
-	return args
+	return arg
 }
 
 //func CopyHeader(dst, src http.Header) {
@@ -47,16 +48,16 @@ func checkRequestArgs(args *RequestArgs) *RequestArgs {
 //	}
 //}
 
-func Get(url string, args *RequestArgs) ([]byte, error) {
-	return Request(context.Background(), "GET", url, args)
+func Get(url string, args ...RequestArgs) ([]byte, error) {
+	return Request(context.Background(), "GET", url, args...)
 }
 
-func Post(url string, args *RequestArgs) ([]byte, error) {
-	return Request(context.Background(), "POST", url, args)
+func Post(url string, args ...RequestArgs) ([]byte, error) {
+	return Request(context.Background(), "POST", url, args...)
 }
 
-func Request(ctx context.Context, method string, url string, args *RequestArgs) ([]byte, error) {
-	args = checkRequestArgs(args)
+func Request(ctx context.Context, method string, url string, args ...RequestArgs) ([]byte, error) {
+	var arg = checkRequestArgs(args...)
 
 	request, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
@@ -64,10 +65,10 @@ func Request(ctx context.Context, method string, url string, args *RequestArgs) 
 	}
 
 	// 重新配置request
-	args.Builder(request)
+	arg.Builder(request)
 
 	var client = http.Client{
-		Timeout: args.Timeout,
+		Timeout: arg.Timeout,
 	}
 
 	response, err := client.Do(request)
