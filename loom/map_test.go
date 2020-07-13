@@ -54,6 +54,17 @@ func TestMap_PutIfAbsent(t *testing.T) {
 	if m.Get(5) != 5 {
 		t.Fail()
 	}
+
+	var input = 1
+	var ret = m.PutIfAbsent(max+1, input)
+	if ret != nil {
+		t.Fail()
+	}
+
+	ret = m.PutIfAbsent(max+1, input)
+	if ret != input {
+		t.Fail()
+	}
 }
 
 func TestMap_Remove(t *testing.T) {

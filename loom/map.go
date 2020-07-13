@@ -111,7 +111,6 @@ func (my *Map) PutIfAbsent(key interface{}, value interface{}) interface{} {
 	{
 		last, has = shard.items[key]
 		if !has {
-			last = value
 			shard.items[key] = value
 			atomic.AddInt64(&my.size, 1)
 		}
