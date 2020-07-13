@@ -10,43 +10,66 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 func TestMap_ComputeIfAbsent(t *testing.T) {
+	t.Parallel()
 	var m Map
 
-	for i := 0; i < 10; i++ {
+	const max = 1000
+	for i := 0; i < max; i++ {
 		m.Put(i, i)
 	}
 
-	for i := 5; i < 15; i++ {
+	const max2 = 2000
+	for i := max / 2; i < max2; i++ {
 		m.ComputeIfAbsent(i, func(key interface{}) interface{} {
 			return key.(int) * 2
 		})
 	}
 
-	if m.Get(5) != 5 {
+	if m.Get(500) != 500 {
 		t.Fail()
 	}
 
-	if m.Get(15) != 30 {
+	if m.Get(1500) != 3000 {
 		t.Fail()
 	}
-}
 
-func TestMap_Get(t *testing.T) {
-
-}
-
-func TestMap_Put(t *testing.T) {
-
+	if m.Size() != max2 {
+		t.Fail()
+	}
 }
 
 func TestMap_PutIfAbsent(t *testing.T) {
+	t.Parallel()
+	var m Map
+	const max = 1000
 
+	for i := 0; i < max; i++ {
+		m.Put(i, i)
+	}
+
+	for i := 0; i < max; i++ {
+		m.PutIfAbsent(i, i*2)
+	}
+
+	if m.Get(5) != 5 {
+		t.Fail()
+	}
 }
 
 func TestMap_Remove(t *testing.T) {
+	t.Parallel()
+	var m Map
+	const max = 1000
 
-}
+	for i := 0; i < max; i++ {
+		m.Put(i, i)
+	}
 
-func TestMap_Size(t *testing.T) {
+	for i := 0; i < max; i++ {
+		m.Remove(i)
+	}
 
+	if m.Size() != 0 {
+		t.Fail()
+	}
 }

@@ -197,18 +197,24 @@ func getShardIndex(key interface{}) int {
 
 func (my *Map) getShard(key interface{}) *shardItem {
 	var index = getShardIndex(key)
-	var item = (*shardItem)(atomic.LoadPointer(&my.data[index]))
-	if item != nil {
-		return item
+	var shard = (*shardItem)(atomic.LoadPointer(&my.data[index]))
+	if shard != nil {
+		return shard
 	}
 
 	my.m.Lock()
-	item = (*shardItem)(atomic.LoadPointer(&my.data[index]))
-	if item == nil {
-		item = &shardItem{items: make(map[interface{}]interface{}, 4)}
-		atomic.StorePointer(&my.data[index], unsafe.Pointer(item))
+	shard = (*shardItem)(atomic.LoadPointer(&my.data[index]))
+	if shard == nil {
+		for i := 0; i < shardCount; i++ {
+			var item = &shardItem{items: make(map[interface{}]interface{}, 4)}
+			atomic.StorePointer(&my.data[i], unsafe.Pointer(item))
+
+			if index == i {
+				shard = item
+			}
+		}
 	}
 	my.m.Unlock()
 
-	return item
+	return shard
 }
