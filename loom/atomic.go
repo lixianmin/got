@@ -33,6 +33,7 @@ func AddIf64(addr *int64, delta int64, predicate func(old int64) bool) bool {
 }
 
 func LoadString(addr **string) string {
+	// 最内层的unsafe.Pointer(addr)对第三方指针的包装，相当时强制类型转换，是固定写法
 	var p = (*string)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(addr))))
 	if p != nil {
 		return *p
