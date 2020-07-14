@@ -31,10 +31,6 @@ type Map struct {
 
 // 如果已经存在了相同key的value，则覆盖找返回以前存在的那一个值；否则返回nil
 func (my *Map) Put(key interface{}, value interface{}) interface{} {
-	if key == nil {
-		return nil
-	}
-
 	var shard = my.getShard(key)
 	var last interface{}
 	var has = false
@@ -54,10 +50,6 @@ func (my *Map) Put(key interface{}, value interface{}) interface{} {
 
 // 如果存在，则删除，并返回该值
 func (my *Map) Remove(key interface{}) interface{} {
-	if key == nil {
-		return nil
-	}
-
 	var shard = my.getShard(key)
 	var last interface{}
 	var has = false
@@ -75,10 +67,6 @@ func (my *Map) Remove(key interface{}) interface{} {
 
 // 如果map中存在，则返回；否则返回nil
 func (my *Map) Get(key interface{}) interface{} {
-	if key == nil {
-		return nil
-	}
-
 	var shard = my.getShard(key)
 	var last, _ = my.getInner(shard, key)
 	return last
@@ -97,10 +85,6 @@ func (my *Map) getInner(shard *shardItem, key interface{}) (interface{}, bool) {
 
 // 这其实是一种get命令：如果有，直接返回； 如果没有，就放进去，然后返回
 func (my *Map) PutIfAbsent(key interface{}, value interface{}) interface{} {
-	if key == nil {
-		return nil
-	}
-
 	var shard = my.getShard(key)
 	var last, has = my.getInner(shard, key)
 	if has {
@@ -121,10 +105,6 @@ func (my *Map) PutIfAbsent(key interface{}, value interface{}) interface{} {
 
 // 如果原来存在，则返回原来的值；否则使用creator创建一个新值，放到到map中，则返回它
 func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) interface{}) interface{} {
-	if key == nil {
-		return nil
-	}
-
 	var shard = my.getShard(key)
 	var last, has = my.getInner(shard, key)
 	if has {
