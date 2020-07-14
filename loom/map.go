@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
+	"unsafe"
 )
 
 /********************************************************************
@@ -28,7 +29,7 @@ type shardItem struct {
 
 type Map struct {
 	m    sync.Mutex
-	data []*shardItem
+	data *[]*shardItem
 	size int64
 }
 
@@ -69,10 +70,15 @@ func (my *Map) Remove(key interface{}) interface{} {
 }
 
 // 如果map中存在，则返回；否则返回nil
-func (my *Map) Get(key interface{}) interface{} {
+func (my *Map) Get1(key interface{}) interface{} {
 	var shard = my.getShard(key)
 	var last, _ = my.getInner(shard, key)
 	return last
+}
+
+func (my *Map) Get2(key interface{}) (interface{}, bool) {
+	var shard = my.getShard(key)
+	return my.getInner(shard, key)
 }
 
 func (my *Map) getInner(shard *shardItem, key interface{}) (interface{}, bool) {
@@ -137,19 +143,23 @@ func (my *Map) Size() int {
 
 func (my *Map) getShard(key interface{}) *shardItem {
 	var index = getShardIndex(key)
-	if my.data == nil {
+	var data = (*[]*shardItem)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&my.data))))
+	if data == nil {
 		my.m.Lock()
 		if my.data == nil {
-			my.data = make([]*shardItem, shardCount)
+			var slice = make([]*shardItem, shardCount)
 			for i := 0; i < shardCount; i++ {
 				var item = &shardItem{items: make(map[interface{}]interface{}, 4)}
-				my.data[i] = item
+				slice[i] = item
 			}
+
+			my.data = &slice
 		}
+		data = my.data
 		my.m.Unlock()
 	}
 
-	var shard = my.data[index]
+	var shard = (*data)[index]
 	return shard
 }
 

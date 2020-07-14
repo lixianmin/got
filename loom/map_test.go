@@ -25,11 +25,11 @@ func TestMap_ComputeIfAbsent(t *testing.T) {
 		})
 	}
 
-	if m.Get(500) != 500 {
+	if m.Get1(500) != 500 {
 		t.Fail()
 	}
 
-	if m.Get(1500) != 3000 {
+	if m.Get1(1500) != 3000 {
 		t.Fail()
 	}
 
@@ -51,7 +51,7 @@ func TestMap_PutIfAbsent(t *testing.T) {
 		m.PutIfAbsent(i, i*2)
 	}
 
-	if m.Get(5) != 5 {
+	if m.Get1(5) != 5 {
 		t.Fail()
 	}
 
