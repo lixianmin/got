@@ -32,11 +32,16 @@ func AddIf64(addr *int64, delta int64, predicate func(old int64) bool) bool {
 	}
 }
 
-func LoadString(addr *unsafe.Pointer) *string {
-	return (*string)(atomic.LoadPointer(addr))
+func LoadString(addr **string) string {
+	var p = (*string)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(addr))))
+	if p != nil {
+		return *p
+	}
+
+	return ""
 }
 
-func StoreString(addr *unsafe.Pointer, s *string) *string {
-	atomic.StorePointer(addr, unsafe.Pointer(s))
+func StoreString(addr **string, s string) string {
+	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(addr)), unsafe.Pointer(&s))
 	return s
 }
