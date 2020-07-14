@@ -25,7 +25,7 @@ type shardItem struct {
 
 type Map struct {
 	m    sync.Mutex
-	data [shardCount]unsafe.Pointer
+	data [shardCount]*shardItem
 	size int64
 }
 
@@ -196,17 +196,17 @@ func getShardIndex(key interface{}) int {
 
 func (my *Map) getShard(key interface{}) *shardItem {
 	var index = getShardIndex(key)
-	var shard = (*shardItem)(atomic.LoadPointer(&my.data[index]))
+	var shard = (*shardItem)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&my.data[index]))))
 	if shard != nil {
 		return shard
 	}
 
 	my.m.Lock()
-	shard = (*shardItem)(atomic.LoadPointer(&my.data[index]))
+	shard = (*shardItem)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&my.data[index]))))
 	if shard == nil {
 		for i := 0; i < shardCount; i++ {
 			var item = &shardItem{items: make(map[interface{}]interface{}, 4)}
-			atomic.StorePointer(&my.data[i], unsafe.Pointer(item))
+			atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&my.data[i])), unsafe.Pointer(item))
 
 			if index == i {
 				shard = item
