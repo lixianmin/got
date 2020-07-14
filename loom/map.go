@@ -2,21 +2,24 @@ package loom
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 	"sync/atomic"
-	"unsafe"
 )
 
 /********************************************************************
 created:    2020-07-13
 author:     lixianmin
 
+仿java.util.concurrent.ConcurrentMap实现的Map类，主要目标为：
+1. 提供更高的写并发度
+2. 提供像ComputeIfAbsent()这样的延迟初始化方法
+
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-// 由于算法需要，这个shardCount必须是 2 的指数倍
-const shardCount = 8
-const shardCountMinus1 = shardCount - 1
+var shardCount = fetchShardCount()
+var shardCountMinus1 = shardCount - 1
 
 type shardItem struct {
 	sync.RWMutex
@@ -25,7 +28,7 @@ type shardItem struct {
 
 type Map struct {
 	m    sync.Mutex
-	data [shardCount]*shardItem
+	data []*shardItem
 	size int64
 }
 
@@ -132,6 +135,24 @@ func (my *Map) Size() int {
 	return int(atomic.LoadInt64(&my.size))
 }
 
+func (my *Map) getShard(key interface{}) *shardItem {
+	var index = getShardIndex(key)
+	if my.data == nil {
+		my.m.Lock()
+		if my.data == nil {
+			my.data = make([]*shardItem, shardCount)
+			for i := 0; i < shardCount; i++ {
+				var item = &shardItem{items: make(map[interface{}]interface{}, 4)}
+				my.data[i] = item
+			}
+		}
+		my.m.Unlock()
+	}
+
+	var shard = my.data[index]
+	return shard
+}
+
 func fnv32(key string) uint32 {
 	hash := uint32(2166136261)
 	const prime32 = uint32(16777619)
@@ -166,7 +187,7 @@ func getShardIndex(key interface{}) int {
 	case string:
 		next = int(fnv32(key))
 	default:
-		var message = fmt.Sprintf("Not supported type= %v", key)
+		var message = fmt.Sprintf("Not supported key type, key= %v", key)
 		panic(message)
 	}
 
@@ -174,26 +195,13 @@ func getShardIndex(key interface{}) int {
 	return index
 }
 
-func (my *Map) getShard(key interface{}) *shardItem {
-	var index = getShardIndex(key)
-	var shard = (*shardItem)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&my.data[index]))))
-	if shard != nil {
-		return shard
+// 由于getShardIndex()算法需要，这个shardCount必须是 2 的指数倍
+func fetchShardCount() int {
+	var numCpu = runtime.NumCPU() << 1
+	var result = 2
+	for result < numCpu {
+		result <<= 1
 	}
 
-	my.m.Lock()
-	shard = (*shardItem)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&my.data[index]))))
-	if shard == nil {
-		for i := 0; i < shardCount; i++ {
-			var item = &shardItem{items: make(map[interface{}]interface{}, 4)}
-			atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&my.data[i])), unsafe.Pointer(item))
-
-			if index == i {
-				shard = item
-			}
-		}
-	}
-	my.m.Unlock()
-
-	return shard
+	return result
 }
