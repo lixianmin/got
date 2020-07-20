@@ -1,6 +1,8 @@
 package loom
 
-import "testing"
+import (
+	"testing"
+)
 
 /********************************************************************
 created:    2020-07-13
@@ -81,6 +83,30 @@ func TestMap_Remove(t *testing.T) {
 	}
 
 	if m.Size() != 0 {
+		t.Fail()
+	}
+}
+
+func TestMap_Range(t *testing.T) {
+	t.Parallel()
+	var m Map
+	const max = 1000
+
+	m.Range(func(key interface{}, value interface{}) {
+		
+	})
+
+	for i := 0; i < max; i++ {
+		m.Put(i, i)
+	}
+
+	var counter = 0
+	m.Range(func(key interface{}, value interface{}) {
+		counter += 1
+		//fmt.Println(key, value)
+	})
+
+	if counter != m.Size() {
 		t.Fail()
 	}
 }

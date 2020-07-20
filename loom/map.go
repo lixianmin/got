@@ -31,7 +31,6 @@ type Map struct {
 	m       sync.Mutex
 	data    *[]*shardItem
 	size    int64
-	version int64
 }
 
 // 如果已经存在了相同key的value，则覆盖找返回以前存在的那一个值；否则返回nil
@@ -48,7 +47,6 @@ func (my *Map) Put(key interface{}, value interface{}) interface{} {
 			shard.items[key] = value
 			my.size += 1
 		}
-		my.version += 1
 	}
 	shard.Unlock()
 	return last
@@ -65,7 +63,6 @@ func (my *Map) Remove(key interface{}) interface{} {
 		if has {
 			delete(shard.items, key)
 			my.size -= 1
-			my.version += 1
 		}
 	}
 	shard.Unlock()
@@ -109,7 +106,6 @@ func (my *Map) PutIfAbsent(key interface{}, value interface{}) interface{} {
 		if !has {
 			shard.items[key] = value
 			my.size += 1
-			my.version += 1
 		}
 	}
 	shard.Unlock()
@@ -138,8 +134,38 @@ func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) in
 	var item = creator(key)
 	shard.items[key] = item
 	my.size += 1
-	my.version += 1
 	return item
+}
+
+// 遍历过程还是不希望修改map本身的数据
+// 关于version的检查没有意义：因为Range()过程中如果想尝试修改Map，就需要使用Remove, Add等接口，这会导致死锁
+func (my *Map) Range(f func(key interface{}, value interface{})) {
+	if f == nil {
+		return
+	}
+
+	var pData = (*[]*shardItem)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&my.data))))
+	if pData != nil {
+		var data = *pData
+		for i := range data {
+			var shard = data[i]
+			shard.RLock()
+			for k, v := range shard.items {
+				safeRangeHandler(f, k, v)
+			}
+			shard.RUnlock()
+		}
+	}
+}
+
+func safeRangeHandler(f func(key interface{}, value interface{}), key interface{}, value interface{}) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(r)
+		}
+	}()
+
+	f(key, value)
 }
 
 func (my *Map) Size() int {
@@ -147,9 +173,8 @@ func (my *Map) Size() int {
 }
 
 func (my *Map) getShard(key interface{}) *shardItem {
-	var index = getShardIndex(key)
-	var data = (*[]*shardItem)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&my.data))))
-	if data == nil {
+	var pData = (*[]*shardItem)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&my.data))))
+	if pData == nil {
 		my.m.Lock()
 		if my.data == nil {
 			var slice = make([]*shardItem, shardCount)
@@ -159,13 +184,13 @@ func (my *Map) getShard(key interface{}) *shardItem {
 			}
 
 			my.data = &slice
-			my.version += 1
 		}
-		data = my.data
+		pData = my.data
 		my.m.Unlock()
 	}
 
-	var shard = (*data)[index]
+	var index = getShardIndex(key)
+	var shard = (*pData)[index]
 	return shard
 }
 
