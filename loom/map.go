@@ -28,9 +28,10 @@ type shardItem struct {
 }
 
 type Map struct {
-	m    sync.Mutex
-	data *[]*shardItem
-	size int64
+	m       sync.Mutex
+	data    *[]*shardItem
+	size    int64
+	version int64
 }
 
 // 如果已经存在了相同key的value，则覆盖找返回以前存在的那一个值；否则返回nil
@@ -45,8 +46,9 @@ func (my *Map) Put(key interface{}, value interface{}) interface{} {
 			shard.items[key] = value
 		} else {
 			shard.items[key] = value
-			atomic.AddInt64(&my.size, 1)
+			my.size += 1
 		}
+		my.version += 1
 	}
 	shard.Unlock()
 	return last
@@ -62,7 +64,8 @@ func (my *Map) Remove(key interface{}) interface{} {
 		last, has = shard.items[key]
 		if has {
 			delete(shard.items, key)
-			atomic.AddInt64(&my.size, -1)
+			my.size -= 1
+			my.version += 1
 		}
 	}
 	shard.Unlock()
@@ -105,7 +108,8 @@ func (my *Map) PutIfAbsent(key interface{}, value interface{}) interface{} {
 		last, has = shard.items[key]
 		if !has {
 			shard.items[key] = value
-			atomic.AddInt64(&my.size, 1)
+			my.size += 1
+			my.version += 1
 		}
 	}
 	shard.Unlock()
@@ -133,7 +137,8 @@ func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) in
 	// 如果没有，则创建一个放入到容器中
 	var item = creator(key)
 	shard.items[key] = item
-	atomic.AddInt64(&my.size, 1)
+	my.size += 1
+	my.version += 1
 	return item
 }
 
@@ -154,6 +159,7 @@ func (my *Map) getShard(key interface{}) *shardItem {
 			}
 
 			my.data = &slice
+			my.version += 1
 		}
 		data = my.data
 		my.m.Unlock()
