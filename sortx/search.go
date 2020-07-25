@@ -7,7 +7,14 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-// 二分查找
+// 通用二分查找算法
+// 目标：在一个有序列表中查找特定的目标值target
+// 算法实现参考《编程珠玑》（人民邮电出版社 第2版）第9.3节 《 大手术 -- 二分搜索》（Page 89）改写
+//
+// 这个算法的特点是：
+// 1. 如果有序列表中存在目标值target，则返回它在有序列表中第1次出现的下标
+// 2. 如果有序列表中不存在目标值target，则返回一个负数下标index，该index的相反数是将target插入到该有序列表中时它应该在的位置
+//
 func Search(count int, less func(i int) bool, equal func(i int) bool) int {
 	if count <= 0 {
 		return -1

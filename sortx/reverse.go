@@ -11,6 +11,9 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
+// 通用逆序算法
+// 目标：将一个slice逆序
+// 算法实现参考：https://stackoverflow.com/questions/54858529/golang-reverse-a-arbitrary-slice
 func Reverse(list interface{}) {
 	var listValue = reflect.Indirect(reflect.ValueOf(list))
 	var kind = listValue.Kind()
