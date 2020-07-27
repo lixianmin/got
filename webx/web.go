@@ -4,6 +4,8 @@ import (
 	"context"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -15,12 +17,12 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type RequestArgs struct {
-	Builder func(request *http.Request) // 配置request
-	Timeout time.Duration               // 控制从链接建立到返回的整个生命周期的时间
+	Builder func(request *http.Request) url.Values // 配置request
+	Timeout time.Duration                          // 控制从链接建立到返回的整个生命周期的时间
 }
 
-func emptyRequestBuilder(request *http.Request) {
-
+func emptyRequestBuilder(request *http.Request) url.Values {
+	return nil
 }
 
 func checkRequestArgs(args ...RequestArgs) RequestArgs {
@@ -65,7 +67,15 @@ func Request(ctx context.Context, method string, url string, args ...RequestArgs
 	}
 
 	// 重新配置request
-	arg.Builder(request)
+	var values = arg.Builder(request)
+	if values != nil {
+		switch method {
+		case "GET":
+			request.URL.RawQuery = values.Encode()
+		case "POST":
+			request.Body = ioutil.NopCloser(strings.NewReader(values.Encode()))
+		}
+	}
 
 	var client = http.Client{
 		Timeout: arg.Timeout,
