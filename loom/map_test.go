@@ -1,6 +1,7 @@
 package loom
 
 import (
+	"sync"
 	"testing"
 )
 
@@ -93,7 +94,7 @@ func TestMap_Range(t *testing.T) {
 	const max = 1000
 
 	m.Range(func(key interface{}, value interface{}) {
-		
+
 	})
 
 	for i := 0; i < max; i++ {
@@ -108,5 +109,67 @@ func TestMap_Range(t *testing.T) {
 
 	if counter != m.Size() {
 		t.Fail()
+	}
+}
+
+func BenchmarkLoomMap_Put(b *testing.B) {
+	b.StartTimer()
+	var m Map
+
+	const max = 1000
+	for i := 0; i < max; i++ {
+		m.Put(i, i)
+	}
+}
+
+func BenchmarkLoomMap_ComputeIfAbsent(b *testing.B) {
+	b.StartTimer()
+	var m Map
+
+	const max = 1000
+	for i := 0; i < max; i++ {
+		m.ComputeIfAbsent(i, func(key interface{}) interface{} {
+			return key
+		})
+	}
+}
+
+func BenchmarkLoomMap_Get1(b *testing.B) {
+	b.StopTimer()
+	var m Map
+
+	const max = 1000
+	for i := 0; i < max; i++ {
+		m.Put(i, i)
+	}
+
+	b.StartTimer()
+	for i := 0; i < max*2; i++ {
+		m.Get1(i)
+	}
+}
+
+func BenchmarkSyncMap_Store(b *testing.B) {
+	b.StartTimer()
+	var m sync.Map
+
+	const max = 1000
+	for i := 0; i < max; i++ {
+		m.Store(i, i)
+	}
+}
+
+func BenchmarkSyncMap_Load(b *testing.B) {
+	b.StopTimer()
+	var m sync.Map
+
+	const max = 1000
+	for i := 0; i < max; i++ {
+		m.Store(i, i)
+	}
+
+	b.StartTimer()
+	for i := 0; i < max*2; i++ {
+		m.Load(i)
 	}
 }
