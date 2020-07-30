@@ -117,8 +117,8 @@ func TestMap_WithLock(t *testing.T) {
 	var m Map
 	m.Put(1, 1)
 
-	m.WithLock(1, func(items ShardTable) {
-		var v, ok = items[1]
+	m.WithLock(1, func(table ShardTable) {
+		var v, ok = table[1]
 		fmt.Print(v, ok)
 	})
 }

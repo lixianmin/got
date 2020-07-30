@@ -140,7 +140,7 @@ func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) in
 }
 
 // 为什么会有这么奇怪的一个方法？有时，我们需要在锁定某个key的情况下执行某些操作，防止在操作的过程中该key被插入导致不一致性
-func (my *Map) WithLock(key interface{}, handler func(items ShardTable)) {
+func (my *Map) WithLock(key interface{}, handler func(table ShardTable)) {
 	var shard = my.getShard(key)
 	shard.Lock()
 	defer shard.Unlock() // 用defer是因为不知道handler会不会panic
