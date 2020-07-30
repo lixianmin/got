@@ -28,9 +28,9 @@ type shardItem struct {
 }
 
 type Map struct {
-	m       sync.Mutex
-	data    *[]*shardItem
-	size    int64
+	m    sync.Mutex
+	data *[]*shardItem
+	size int64
 }
 
 // 如果已经存在了相同key的value，则覆盖找返回以前存在的那一个值；否则返回nil
@@ -120,8 +120,8 @@ func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) in
 		return last
 	}
 
-	my.m.Lock()
-	defer my.m.Unlock() // 用defer是因为不知道creator会不会panic
+	shard.Lock()
+	defer shard.Unlock() // 用defer是因为不知道creator会不会panic
 
 	// 加x锁后需要重新测试有没有数据
 	// 如果creator=nil，也就不会重新生成了
