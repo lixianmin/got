@@ -1,6 +1,7 @@
 package loom
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 )
@@ -110,6 +111,16 @@ func TestMap_Range(t *testing.T) {
 	if counter != m.Size() {
 		t.Fail()
 	}
+}
+
+func TestMap_WithLock(t *testing.T) {
+	var m Map
+	m.Put(1, 1)
+
+	m.WithLock(1, func(items ShardTable) {
+		var v, ok = items[1]
+		fmt.Print(v, ok)
+	})
 }
 
 func BenchmarkLoomMap_Put(b *testing.B) {

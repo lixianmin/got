@@ -22,9 +22,11 @@ Copyright (C) - All Rights Reserved
 var shardCount = fetchShardCount()
 var shardCountMinus1 = shardCount - 1
 
+type ShardTable map[interface{}]interface{}
+
 type shardItem struct {
 	sync.RWMutex
-	items map[interface{}]interface{}
+	items ShardTable
 }
 
 type Map struct {
@@ -138,11 +140,11 @@ func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) in
 }
 
 // 为什么会有这么奇怪的一个方法？有时，我们需要在锁定某个key的情况下执行某些操作，防止在操作的过程中该key被插入导致不一致性
-func (my *Map) WithLock(key interface{}, handler func()) {
+func (my *Map) WithLock(key interface{}, handler func(items ShardTable)) {
 	var shard = my.getShard(key)
 	shard.Lock()
 	defer shard.Unlock() // 用defer是因为不知道handler会不会panic
-	handler()
+	handler(shard.items)
 }
 
 // 遍历过程还是不希望修改map本身的数据
@@ -187,7 +189,7 @@ func (my *Map) getShard(key interface{}) *shardItem {
 		if my.data == nil {
 			var slice = make([]*shardItem, shardCount)
 			for i := 0; i < shardCount; i++ {
-				var item = &shardItem{items: make(map[interface{}]interface{}, 4)}
+				var item = &shardItem{items: make(ShardTable, 4)}
 				slice[i] = item
 			}
 
