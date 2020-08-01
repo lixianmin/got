@@ -30,7 +30,8 @@ func (later *Later) NewTimer(d time.Duration) *time.Timer {
 }
 
 func (later *Later) stop() {
-	for _, item := range later.stoppers {
+	for i := len(later.stoppers) - 1; i >= 0; i-- {
+		var item = later.stoppers[i]
 		switch item := item.(type) {
 		case *time.Ticker:
 			item.Stop()
