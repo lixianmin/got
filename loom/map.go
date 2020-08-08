@@ -94,7 +94,7 @@ func (my *Map) getInner(shard *shardItem, key interface{}) (interface{}, bool) {
 	return last, has
 }
 
-// 这其实是一种get命令：如果有，直接返回； 如果没有，就放进去，然后返回
+// 这其实是一种get命令：如果key对应的value已经存在，则返回存在的value，不进行替换；如果不存在，就添加key和value，然后返回nil
 func (my *Map) PutIfAbsent(key interface{}, value interface{}) interface{} {
 	var shard = my.getShard(key)
 	var last, has = my.getInner(shard, key)
