@@ -68,7 +68,7 @@ func DumpIfPanic() {
 	var logDir = "logs"
 	var logFilePath = fmt.Sprintf("%s/dump.%s.%s.log", logDir, exeName, timestamp)
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {
-		_ = os.MkdirAll(logDir, 0700)
+		_ = os.MkdirAll(logDir, os.ModePerm)
 	}
 
 	fmt.Println("dump to file ", logFilePath)
