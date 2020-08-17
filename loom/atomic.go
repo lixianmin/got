@@ -46,3 +46,18 @@ func StoreString(addr **string, s string) string {
 	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(addr)), unsafe.Pointer(&s))
 	return s
 }
+
+func LoadBool(addr *int32) bool {
+	var v = atomic.LoadInt32(addr)
+	return v != 0
+}
+
+func StoreBool(addr *int32, b bool) bool {
+	var v int32 = 0
+	if b {
+		v = 1
+	}
+
+	atomic.StoreInt32(addr, v)
+	return b
+}
