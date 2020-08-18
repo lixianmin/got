@@ -20,7 +20,7 @@ func (my *TestGo) Init() {
 	my.wc = NewWaitClose()
 	Go(my.goLoop)
 
-	<-my.wc.CloseChan
+	<-my.wc.C
 }
 
 func (my *TestGo) goLoop(later *Later) {
@@ -32,7 +32,7 @@ func (my *TestGo) goLoop(later *Later) {
 			counter += 1
 			println("goLoop")
 			if counter == 3 {
-				_ = my.wc.Close()
+				my.wc.Close()
 				return
 			}
 		}

@@ -14,36 +14,34 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type WaitClose struct {
-	CloseChan chan struct{}
-	m         sync.Mutex
-	done      int32
+	C    chan struct{}
+	m    sync.Mutex
+	done int32
 }
 
 func NewWaitClose() *WaitClose {
 	var wd = &WaitClose{
-		CloseChan: make(chan struct{}),
+		C: make(chan struct{}),
 	}
 
 	return wd
 }
 
-func (wc *WaitClose) Close() error {
+func (wc *WaitClose) Close() {
 	if 0 == atomic.LoadInt32(&wc.done) {
 		wc.m.Lock()
 		if 0 == wc.done {
 			atomic.StoreInt32(&wc.done, 1)
-			close(wc.CloseChan)
+			close(wc.C)
 		}
 		wc.m.Unlock()
 	}
-
-	return nil
 }
 
 func (wc *WaitClose) WaitUtil(timeout time.Duration) bool {
 	var timer = time.NewTimer(timeout)
 	select {
-	case <-wc.CloseChan:
+	case <-wc.C:
 		timer.Stop()
 		return true
 	case <-timer.C:
