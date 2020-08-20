@@ -18,7 +18,7 @@ type TestGo struct {
 
 func (my *TestGo) Init() {
 	my.wc = NewWaitClose()
-	Go(my.goLoop)
+	Go1(my.goLoop)
 
 	<-my.wc.C
 }
