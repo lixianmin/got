@@ -45,7 +45,7 @@ func (later *Later) stop() {
 	}
 }
 
-func Go1(handler func(later *Later)) {
+func Go(handler func(later *Later)) {
 	go func() {
 		defer DumpIfPanic()
 
@@ -53,16 +53,5 @@ func Go1(handler func(later *Later)) {
 		defer later.stop()
 
 		handler(later)
-	}()
-}
-
-func Go2(handler func(later *Later, args interface{}), args interface{}) {
-	go func() {
-		defer DumpIfPanic()
-
-		var later = &Later{}
-		defer later.stop()
-
-		handler(later, args)
 	}()
 }
