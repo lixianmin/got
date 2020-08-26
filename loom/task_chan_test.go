@@ -15,12 +15,12 @@ Copyright (C) - All Rights Reserved
 func TestNewTaskQueue(t *testing.T) {
 
 	var wc = NewWaitClose()
-	var tq = NewTaskQueue(wc.C)
+	var tasks = NewTaskChan(wc.C)
 
 	go func() {
 		for {
 			select {
-			case task := <-tq.TaskChan:
+			case task := <-tasks.C:
 				var err = task.Do()
 				if err != nil {
 					println(err)
@@ -31,14 +31,14 @@ func TestNewTaskQueue(t *testing.T) {
 		}
 	}()
 
-	tq.SendCallback(func() error {
+	tasks.SendCallback(func() error {
 		println("hello")
 		return nil
 	})
 
-	tq.SendCallback(nil).Wait()
+	tasks.SendCallback(nil).Wait()
 
-	tq.SendCallback(func() error {
+	tasks.SendCallback(func() error {
 		time.Sleep(500 * time.Millisecond)
 		println("world")
 		return nil
@@ -46,7 +46,7 @@ func TestNewTaskQueue(t *testing.T) {
 
 	wc.Close()
 
-	tq.SendCallback(func() error {
+	tasks.SendCallback(func() error {
 		println("oh oops")
 		return nil
 	})

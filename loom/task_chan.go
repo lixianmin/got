@@ -4,6 +4,10 @@ package loom
 created:    2020-08-25
 author:     lixianmin
 
+改名为TaskChan是为了跟以后可能出现的TaskQueue相区别：
+1. TaskChan只负责接收任务，但并不负责消费任务
+2. TaskQueue应该会自己启动一个独立的goroutine消费掉所有任务
+
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
@@ -12,36 +16,36 @@ type ITask interface {
 	Wait()
 }
 
-type TaskQueue struct {
+type TaskChan struct {
 	closeChan chan struct{}
-	TaskChan  chan ITask
+	C         chan ITask
 }
 
-func NewTaskQueue(closeChan chan struct{}) *TaskQueue {
+func NewTaskChan(closeChan chan struct{}) *TaskChan {
 	if closeChan == nil {
 		closeChan = make(chan struct{})
 	}
 
-	var my = &TaskQueue{
+	var my = &TaskChan{
 		closeChan: closeChan,
-		TaskChan:  make(chan ITask, 8),
+		C:         make(chan ITask, 8),
 	}
 
 	return my
 }
 
-func (my *TaskQueue) SendTask(task ITask) ITask {
+func (my *TaskChan) SendTask(task ITask) ITask {
 	if task != nil {
 		select {
 		case <-my.closeChan:
-		case my.TaskChan <- task:
+		case my.C <- task:
 		}
 	}
 
 	return task
 }
 
-func (my *TaskQueue) SendCallback(handler func() error) ITask {
+func (my *TaskChan) SendCallback(handler func() error) ITask {
 	if handler == nil {
 		return taskEmpty{}
 	}
@@ -51,7 +55,7 @@ func (my *TaskQueue) SendCallback(handler func() error) ITask {
 
 	select {
 	case <-my.closeChan:
-	case my.TaskChan <- task:
+	case my.C <- task:
 	}
 
 	return task
