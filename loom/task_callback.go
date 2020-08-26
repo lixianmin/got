@@ -11,11 +11,11 @@ Copyright (C) - All Rights Reserved
 
 type taskCallback struct {
 	wg      sync.WaitGroup
-	handler func() error
+	handler func(args interface{}) error
 }
 
-func (task *taskCallback) Do() error {
-	var err = task.handler()
+func (task *taskCallback) Do(args interface{}) error {
+	var err = task.handler(args)
 	task.wg.Done()
 	return err
 }

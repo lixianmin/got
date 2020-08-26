@@ -9,7 +9,7 @@ Copyright (C) - All Rights Reserved
 
 type taskEmpty struct{}
 
-func (task taskEmpty) Do() error {
+func (task taskEmpty) Do(args interface{}) error {
 	return nil
 }
 

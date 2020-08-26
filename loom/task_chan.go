@@ -12,7 +12,7 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type ITask interface {
-	Do() error
+	Do(args interface{}) error
 	Wait()
 }
 
@@ -45,7 +45,7 @@ func (my *TaskChan) SendTask(task ITask) ITask {
 	return task
 }
 
-func (my *TaskChan) SendCallback(handler func() error) ITask {
+func (my *TaskChan) SendCallback(handler func(args interface{}) error) ITask {
 	if handler == nil {
 		return taskEmpty{}
 	}
