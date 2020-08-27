@@ -20,3 +20,8 @@ func (task taskEmpty) Get1() interface{} {
 func (task taskEmpty) Get2() (interface{}, error) {
 	return nil, nil
 }
+
+// 创建一个empty的task对象
+func EmptyTask() taskEmpty {
+	return taskEmpty{}
+}
