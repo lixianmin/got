@@ -22,7 +22,12 @@ func (task *taskCallback) Do(args interface{}) error {
 	return task.err
 }
 
-func (task *taskCallback) Get() (interface{}, error) {
+func (task *taskCallback) Get1() interface{} {
+	task.wg.Wait()
+	return task.result
+}
+
+func (task *taskCallback) Get2() (interface{}, error) {
 	task.wg.Wait()
 	return task.result, task.err
 }

@@ -44,14 +44,14 @@ func TestNewTaskQueue(t *testing.T) {
 		return nil, nil
 	})
 
-	_, _ = tasks.SendCallback(nil).Get()
+	tasks.SendCallback(nil).Get1()
 
 	result, _ := tasks.SendCallback(func(args interface{}) (interface{}, error) {
 		time.Sleep(500 * time.Millisecond)
 		var fetus = args.(Fetus)
 		result := fmt.Sprintf("world %d", fetus.counter)
 		return result, nil
-	}).Get()
+	}).Get2()
 
 	println(result.(string))
 	wc.Close()

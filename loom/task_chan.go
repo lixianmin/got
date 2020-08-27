@@ -13,7 +13,8 @@ Copyright (C) - All Rights Reserved
 
 type ITask interface {
 	Do(args interface{}) error
-	Get() (interface{}, error)
+	Get1() interface{}
+	Get2() (interface{}, error)
 }
 
 type TaskChan struct {
