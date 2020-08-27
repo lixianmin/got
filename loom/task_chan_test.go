@@ -1,6 +1,7 @@
 package loom
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -37,25 +38,26 @@ func TestNewTaskQueue(t *testing.T) {
 		}
 	}()
 
-	tasks.SendCallback(func(args interface{}) error {
+	tasks.SendCallback(func(args interface{}) (result interface{}, err error) {
 		var fetus = args.(Fetus)
 		println("hello", fetus.counter)
-		return nil
+		return nil, nil
 	})
 
-	tasks.SendCallback(nil).Wait()
+	_, _ = tasks.SendCallback(nil).Get()
 
-	tasks.SendCallback(func(args interface{}) error {
+	result, _ := tasks.SendCallback(func(args interface{}) (interface{}, error) {
 		time.Sleep(500 * time.Millisecond)
 		var fetus = args.(Fetus)
-		println("world", fetus.counter)
-		return nil
-	}).Wait()
+		result := fmt.Sprintf("world %d", fetus.counter)
+		return result, nil
+	}).Get()
 
+	println(result.(string))
 	wc.Close()
 
-	tasks.SendCallback(func(args interface{}) error {
+	tasks.SendCallback(func(args interface{}) (result interface{}, err error) {
 		println("oh oops")
-		return nil
+		return nil, nil
 	})
 }

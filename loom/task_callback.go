@@ -10,16 +10,19 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type taskCallback struct {
+	handler func(args interface{}) (interface{}, error)
 	wg      sync.WaitGroup
-	handler func(args interface{}) error
+	result  interface{}
+	err     error
 }
 
 func (task *taskCallback) Do(args interface{}) error {
-	var err = task.handler(args)
+	task.result, task.err = task.handler(args)
 	task.wg.Done()
-	return err
+	return task.err
 }
 
-func (task *taskCallback) Wait() {
+func (task *taskCallback) Get() (interface{}, error) {
 	task.wg.Wait()
+	return task.result, task.err
 }

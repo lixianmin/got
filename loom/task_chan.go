@@ -13,7 +13,7 @@ Copyright (C) - All Rights Reserved
 
 type ITask interface {
 	Do(args interface{}) error
-	Wait()
+	Get() (interface{}, error)
 }
 
 type TaskChan struct {
@@ -45,7 +45,7 @@ func (my *TaskChan) SendTask(task ITask) ITask {
 	return task
 }
 
-func (my *TaskChan) SendCallback(handler func(args interface{}) error) ITask {
+func (my *TaskChan) SendCallback(handler func(args interface{}) (result interface{}, err error)) ITask {
 	if handler == nil {
 		return taskEmpty{}
 	}

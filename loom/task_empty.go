@@ -13,6 +13,6 @@ func (task taskEmpty) Do(args interface{}) error {
 	return nil
 }
 
-func (task taskEmpty) Wait() {
-
+func (task taskEmpty) Get() (interface{}, error) {
+	return nil, nil
 }
