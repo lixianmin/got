@@ -41,3 +41,30 @@ func ReadLines(path string, handler func(line string) bool) error {
 
 	return nil
 }
+
+func ReadAllLines(path string) ([]string, error) {
+	var fin, err = os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	defer fin.Close()
+
+	var reader = bufio.NewReader(fin)
+	var lines = make([]string, 0, 32)
+	for {
+		var buffer, err = reader.ReadBytes('\n')
+		if err != nil {
+			break
+		}
+
+		var line = string(buffer[:len(buffer)-1])
+		lines = append(lines, line)
+	}
+
+	if err != io.EOF {
+		return nil, err
+	}
+
+	return lines, nil
+}
