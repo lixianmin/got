@@ -2,7 +2,6 @@ package filex
 
 import (
 	"bufio"
-	"io"
 	"os"
 )
 
@@ -35,11 +34,7 @@ func ReadLines(path string, handler func(line string) bool) error {
 		}
 	}
 
-	if err != io.EOF {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func ReadAllLines(path string) ([]string, error) {
@@ -62,9 +57,5 @@ func ReadAllLines(path string) ([]string, error) {
 		lines = append(lines, line)
 	}
 
-	if err != io.EOF {
-		return nil, err
-	}
-
-	return lines, nil
+	return lines, err
 }
