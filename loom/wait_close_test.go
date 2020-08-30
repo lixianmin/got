@@ -43,7 +43,26 @@ func TestWaitClose_Chan(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(time.Second * 2)
-	wc.Close(nil)
-	time.Sleep(time.Second * 100)
+	go func() {
+		time.Sleep(2 * time.Second)
+		wc.Close(nil)
+	}()
+
+	<-wc.C()
+}
+
+func TestWaitClose_Close(t *testing.T) {
+	t.Parallel()
+	var wc WaitClose
+
+	wc.WaitUtil(time.Second)
+
+	var f = func() {
+		wc.Close(func() {
+			println("closed once")
+		})
+	}
+
+	f()
+	f()
 }
