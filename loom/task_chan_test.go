@@ -14,8 +14,8 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 func TestNewTaskQueue(t *testing.T) {
-	var wc = NewWaitClose()
-	var tasks = NewTaskChan(wc.C)
+	var wc WaitClose
+	var tasks = NewTaskChan(wc.C())
 
 	type Fetus struct {
 		counter int
@@ -32,7 +32,7 @@ func TestNewTaskQueue(t *testing.T) {
 				if err != nil {
 					println(err)
 				}
-			case <-wc.C:
+			case <-wc.C():
 				break
 			}
 		}
@@ -54,7 +54,7 @@ func TestNewTaskQueue(t *testing.T) {
 	}).Get2()
 
 	println(result.(string))
-	wc.Close()
+	wc.Close(nil)
 
 	tasks.SendCallback(func(args interface{}) (result interface{}, err error) {
 		println("oh oops")

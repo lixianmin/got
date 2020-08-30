@@ -13,14 +13,13 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type TestGo struct {
-	wc *WaitClose
+	wc WaitClose
 }
 
 func (my *TestGo) Init() {
-	my.wc = NewWaitClose()
 	Go(my.goLoop)
 
-	<-my.wc.C
+	<-my.wc.C()
 }
 
 func (my *TestGo) goLoop(later *Later) {
@@ -32,7 +31,7 @@ func (my *TestGo) goLoop(later *Later) {
 			counter += 1
 			println("goLoop")
 			if counter == 3 {
-				my.wc.Close()
+				my.wc.Close(nil)
 				return
 			}
 		}
