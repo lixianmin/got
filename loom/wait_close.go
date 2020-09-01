@@ -1,6 +1,7 @@
 package loom
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -45,13 +46,23 @@ func (wc *WaitClose) WaitUtil(timeout time.Duration) bool {
 func (wc *WaitClose) Close(callback func()) {
 	if wcInitialized == atomic.LoadInt32(&wc.state) {
 		wc.mutex.Lock()
-		defer wc.mutex.Unlock()
+		if callback == nil {
+			if wcInitialized == wc.state {
+				atomic.StoreInt32(&wc.state, wcClosed)
+				close(wc.closeChan)
+			}
+			wc.mutex.Unlock()
+		} else { // 因为有外来的callback方法，所以有可能panic
+			defer func() {
+				wc.mutex.Unlock()
+				if r := recover(); r != nil {
+					fmt.Printf("%v\n", r)
+				}
+			}()
 
-		if wcInitialized == wc.state {
-			atomic.StoreInt32(&wc.state, wcClosed)
-			close(wc.closeChan)
-
-			if callback != nil {
+			if wcInitialized == wc.state {
+				atomic.StoreInt32(&wc.state, wcClosed)
+				close(wc.closeChan)
 				callback()
 			}
 		}

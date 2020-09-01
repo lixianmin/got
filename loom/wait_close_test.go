@@ -55,7 +55,7 @@ func TestWaitClose_Close(t *testing.T) {
 	t.Parallel()
 	var wc WaitClose
 
-	wc.WaitUtil(time.Second)
+	wc.WaitUtil(time.Millisecond)
 
 	var f = func() {
 		wc.Close(func() {
@@ -63,6 +63,25 @@ func TestWaitClose_Close(t *testing.T) {
 		})
 	}
 
-	f()
-	f()
+	go f()
+	go f()
+	go f()
+}
+
+func TestWaitClose_Close2(t *testing.T) {
+	t.Parallel()
+	var wc WaitClose
+
+	wc.WaitUtil(time.Millisecond)
+
+	var f = func() {
+		wc.Close(func() {
+			panic("hello")
+		})
+		wc.Close(nil)
+	}
+
+	go f()
+	go f()
+	go f()
 }
