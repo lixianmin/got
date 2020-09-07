@@ -43,7 +43,7 @@ func (wc *WaitClose) WaitUtil(timeout time.Duration) bool {
 	}
 }
 
-func (wc *WaitClose) Close(callback func()) {
+func (wc *WaitClose) Close(callback func() error) error {
 	if wcInitialized == atomic.LoadInt32(&wc.state) {
 		wc.mutex.Lock()
 		if callback == nil {
@@ -63,10 +63,12 @@ func (wc *WaitClose) Close(callback func()) {
 			if wcInitialized == wc.state {
 				atomic.StoreInt32(&wc.state, wcClosed)
 				close(wc.closeChan)
-				callback()
+				return callback()
 			}
 		}
 	}
+
+	return nil
 }
 
 func (wc *WaitClose) IsClosed() bool {
