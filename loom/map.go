@@ -16,6 +16,15 @@ author:     lixianmin
 1. 提供更高的写并发度
 2. 提供像ComputeIfAbsent()这样的延迟初始化方法
 
+todo 是否将loom.Map分uint32, uint64与string，分类型初始化？
+	1. 这对速度和内存占用可能会是一个bonus，我们通常只需要value是interface{}，而key不需要太复杂的类型（本来我们也没支持几种类型）；
+	2. 这会导致同时只能存储单一的key类型，比如只能存储int或string。不过，大部分情况下我们的key的确是单一类型；
+
+todo 减少默认sharding数？同时增加一个只允许调用一次SetSharding(count)方法
+	1. 跟直接加一个NewMap(shardingCount)初始化方法相比孰优孰劣？减小初始化大小会降低内存使用量（为什么印象里实测并没有减少内存使用量？）
+	2. 会增加使用复杂度，因为大多数人都只使用默认的设置；
+	3. 强迫使用NewMap(shardingCount)方法增加使用门槛；
+
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
