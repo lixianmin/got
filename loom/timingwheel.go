@@ -85,7 +85,6 @@ func (wheel *TimingWheel) goLoop(later Later) {
 		case <-ticker.C:
 			wheel.onTicker()
 		case <-closeChan:
-			ticker.Stop()
 			return
 		}
 	}
