@@ -100,7 +100,7 @@ func (wheel *TimingWheel) onTicker() {
 	var position = buckets.position
 	var lastChan = buckets.channels[position]
 	buckets.channels[position] = nextChan
-	buckets.position = (position + 1) % wheel.bucketsSize)
+	buckets.position = (position + 1) % wheel.bucketsSize
 	buckets.Unlock()
 
 	close(lastChan)
