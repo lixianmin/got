@@ -17,12 +17,19 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 func TestTimingWheel(t *testing.T) {
-	w := NewTimingWheel(200*time.Millisecond, 10)
+	t.Parallel()
+	w := NewTimingWheel(10*time.Millisecond, 101)
 
-	for {
-		select {
-		case <-w.After(time.Second):
-			fmt.Println(time.Now().Unix())
-		}
+	for i := 0; i < 5; i++ {
+		go func() {
+			for {
+				select {
+				case <-w.After(time.Second):
+					fmt.Println(time.Now().Unix())
+				}
+			}
+		}()
 	}
+
+	select {}
 }

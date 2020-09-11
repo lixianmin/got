@@ -1,8 +1,9 @@
 package loom
 
 import (
-	"sync"
+	"sync/atomic"
 	"time"
+	"unsafe"
 )
 
 /********************************************************************
@@ -15,18 +16,17 @@ https://github.com/siddontang/go/tree/master/timingwheel
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type TimingWheel struct {
-	wc WaitClose
+type wheelChan struct {
+	c chan struct{}
+}
 
+type TimingWheel struct {
+	wc          WaitClose
 	interval    time.Duration
 	maxTimeout  time.Duration
 	bucketsSize int
-
-	buckets struct {
-		sync.RWMutex
-		channels []chan struct{}
-		position int
-	}
+	position    int64
+	channels    []unsafe.Pointer
 }
 
 func NewTimingWheel(interval time.Duration, bucketsSize int) *TimingWheel {
@@ -44,12 +44,12 @@ func NewTimingWheel(interval time.Duration, bucketsSize int) *TimingWheel {
 		bucketsSize: bucketsSize,
 	}
 
-	var channels = make([]chan struct{}, bucketsSize)
+	var channels = make([]unsafe.Pointer, bucketsSize)
 	for i := range channels {
-		channels[i] = make(chan struct{})
+		channels[i] = unsafe.Pointer(&wheelChan{c: make(chan struct{})})
 	}
 
-	wheel.buckets.channels = channels
+	wheel.channels = channels
 	Go(wheel.goLoop)
 	return wheel
 }
@@ -68,11 +68,9 @@ func (wheel *TimingWheel) After(timeout time.Duration) <-chan struct{} {
 		index--
 	}
 
-	var buckets = &wheel.buckets
-	buckets.RLock()
-	index = (buckets.position + index) % wheel.bucketsSize
-	var waitChan = buckets.channels[index]
-	buckets.RUnlock()
+	var position = int(atomic.LoadInt64(&wheel.position))
+	index = (position + index) % wheel.bucketsSize
+	var waitChan = (*wheelChan)(atomic.LoadPointer(&wheel.channels[index])).c
 
 	return waitChan
 }
@@ -93,15 +91,11 @@ func (wheel *TimingWheel) goLoop(later Later) {
 }
 
 func (wheel *TimingWheel) onTicker() {
-	var buckets = &wheel.buckets
-	var nextChan = make(chan struct{})
+	var position = int(atomic.LoadInt64(&wheel.position))
+	var lastChan = (*wheelChan)(atomic.LoadPointer(&wheel.channels[position])).c
+	atomic.StorePointer(&wheel.channels[position], unsafe.Pointer(&wheelChan{c: make(chan struct{})}))
 
-	buckets.Lock()
-	var position = buckets.position
-	var lastChan = buckets.channels[position]
-	buckets.channels[position] = nextChan
-	buckets.position = (position + 1) % wheel.bucketsSize
-	buckets.Unlock()
-
+	position = (position + 1) % wheel.bucketsSize
+	atomic.StoreInt64(&wheel.position, int64(position))
 	close(lastChan)
 }
