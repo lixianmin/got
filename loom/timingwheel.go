@@ -77,7 +77,7 @@ func (wheel *TimingWheel) After(timeout time.Duration) <-chan struct{} {
 	return waitChan
 }
 
-func (wheel *TimingWheel) goLoop(later *Later) {
+func (wheel *TimingWheel) goLoop(later Later) {
 	var ticker = later.NewTicker(wheel.interval)
 	var closeChan = wheel.wc.C()
 

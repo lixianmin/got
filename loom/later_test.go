@@ -22,7 +22,7 @@ func (my *TestGo) Init() {
 	<-my.wc.C()
 }
 
-func (my *TestGo) goLoop(later *Later) {
+func (my *TestGo) goLoop(later Later) {
 	var ticker = later.NewTicker(time.Second)
 	var counter = 0
 	for {

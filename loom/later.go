@@ -13,23 +13,28 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type Later struct {
+type Later interface {
+	NewTicker(d time.Duration) *time.Ticker
+	NewTimer(d time.Duration) *time.Timer
+}
+
+type laterImpl struct {
 	stoppers []interface{}
 }
 
-func (later *Later) NewTicker(d time.Duration) *time.Ticker {
+func (later *laterImpl) NewTicker(d time.Duration) *time.Ticker {
 	var ticker = time.NewTicker(d)
 	later.stoppers = append(later.stoppers, ticker)
 	return ticker
 }
 
-func (later *Later) NewTimer(d time.Duration) *time.Timer {
+func (later *laterImpl) NewTimer(d time.Duration) *time.Timer {
 	var timer = time.NewTimer(d)
 	later.stoppers = append(later.stoppers, timer)
 	return timer
 }
 
-func (later *Later) stop() {
+func (later *laterImpl) stop() {
 	for i := len(later.stoppers) - 1; i >= 0; i-- {
 		var item = later.stoppers[i]
 		switch item := item.(type) {
@@ -45,11 +50,11 @@ func (later *Later) stop() {
 	}
 }
 
-func Go(handler func(later *Later)) {
+func Go(handler func(later Later)) {
 	go func() {
 		defer DumpIfPanic()
 
-		var later = &Later{}
+		var later = &laterImpl{}
 		defer later.stop()
 
 		handler(later)
