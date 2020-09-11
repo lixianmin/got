@@ -58,8 +58,9 @@ func TestWaitClose_Close(t *testing.T) {
 	wc.WaitUtil(time.Millisecond)
 
 	var f = func() {
-		wc.Close(func() {
+		_ = wc.Close(func() error {
 			println("closed once")
+			return nil
 		})
 	}
 
@@ -75,10 +76,11 @@ func TestWaitClose_Close2(t *testing.T) {
 	wc.WaitUtil(time.Millisecond)
 
 	var f = func() {
-		wc.Close(func() {
+		_ = wc.Close(func() error {
 			panic("hello")
+			return nil
 		})
-		wc.Close(nil)
+		_ = wc.Close(nil)
 	}
 
 	go f()
