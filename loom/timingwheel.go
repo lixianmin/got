@@ -18,14 +18,14 @@ Copyright (C) - All Rights Reserved
 type TimingWheel struct {
 	wc WaitClose
 
-	interval   time.Duration
-	maxTimeout time.Duration
+	interval    time.Duration
+	maxTimeout  time.Duration
+	bucketsSize int
 
 	buckets struct {
 		sync.RWMutex
 		channels []chan struct{}
 		position int
-		size     int
 	}
 }
 
@@ -39,8 +39,9 @@ func NewTimingWheel(interval time.Duration, bucketsSize int) *TimingWheel {
 	}
 
 	var wheel = &TimingWheel{
-		interval:   interval,
-		maxTimeout: interval * time.Duration(bucketsSize),
+		interval:    interval,
+		maxTimeout:  interval * time.Duration(bucketsSize),
+		bucketsSize: bucketsSize,
 	}
 
 	var channels = make([]chan struct{}, bucketsSize)
@@ -49,8 +50,6 @@ func NewTimingWheel(interval time.Duration, bucketsSize int) *TimingWheel {
 	}
 
 	wheel.buckets.channels = channels
-	wheel.buckets.size = bucketsSize
-
 	Go(wheel.goLoop)
 	return wheel
 }
@@ -71,11 +70,11 @@ func (wheel *TimingWheel) After(timeout time.Duration) <-chan struct{} {
 
 	var buckets = &wheel.buckets
 	buckets.RLock()
-	index = (buckets.position + index) % buckets.size
-	var b = buckets.channels[index]
+	index = (buckets.position + index) % wheel.bucketsSize
+	var waitChan = buckets.channels[index]
 	buckets.RUnlock()
 
-	return b
+	return waitChan
 }
 
 func (wheel *TimingWheel) goLoop(later *Later) {
@@ -95,11 +94,13 @@ func (wheel *TimingWheel) goLoop(later *Later) {
 
 func (wheel *TimingWheel) onTicker() {
 	var buckets = &wheel.buckets
+	var nextChan = make(chan struct{})
 
 	buckets.Lock()
-	var lastChan = buckets.channels[buckets.position]
-	buckets.channels[buckets.position] = make(chan struct{})
-	buckets.position = (buckets.position + 1) % buckets.size
+	var position = buckets.position
+	var lastChan = buckets.channels[position]
+	buckets.channels[position] = nextChan
+	buckets.position = (position + 1) % wheel.bucketsSize)
 	buckets.Unlock()
 
 	close(lastChan)
