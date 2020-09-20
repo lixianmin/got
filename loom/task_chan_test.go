@@ -15,7 +15,7 @@ Copyright (C) - All Rights Reserved
 
 func TestNewTaskQueue(t *testing.T) {
 	var wc WaitClose
-	var tasks = NewTaskChan(wc.C())
+	var tasks = NewTaskChan(4, wc.C())
 
 	type Fetus struct {
 		counter int

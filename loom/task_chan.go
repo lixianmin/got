@@ -22,14 +22,18 @@ type TaskChan struct {
 	C         chan ITask
 }
 
-func NewTaskChan(closeChan chan struct{}) *TaskChan {
+func NewTaskChan(size int, closeChan chan struct{}) *TaskChan {
+	if size <= 0 {
+		size = 8
+	}
+
 	if closeChan == nil {
 		closeChan = make(chan struct{})
 	}
 
 	var my = &TaskChan{
 		closeChan: closeChan,
-		C:         make(chan ITask, 8),
+		C:         make(chan ITask, size),
 	}
 
 	return my
