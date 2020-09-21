@@ -48,9 +48,9 @@ func (h *sampleHeap) Get(index int) sampleHeapItem {
 
 // 参考文献：http://lotabout.me/2018/Weighted-Random-Sampling
 // 加权采样，返回索引下标
-func WeightedSampling(targetNum int, totalNum int, getWeight func(int) float64) []int {
-	if totalNum < targetNum || totalNum <= 0 {
-		var message = fmt.Sprintf("invalid inputs: targetNum=%d, totalNum=%d", targetNum, totalNum)
+func WeightedSampling(sampleNum int, totalNum int, getWeight func(int) float64) []int {
+	if totalNum < sampleNum || totalNum <= 0 {
+		var message = fmt.Sprintf("invalid inputs: sampleNum=%d, totalNum=%d", sampleNum, totalNum)
 		panic(message)
 	}
 
@@ -59,23 +59,23 @@ func WeightedSampling(targetNum int, totalNum int, getWeight func(int) float64) 
 		index int
 	}
 
-	h := make(sampleHeap, targetNum)
+	h := make(sampleHeap, sampleNum)
 	for i := 0; i < totalNum; i++ {
 		ui := rand.Float64()
 		ki := math.Pow(ui, 1/getWeight(i))
 
-		if h.Len() < targetNum {
+		if h.Len() < sampleNum {
 			heap.Push(&h, sampleHeapItem{ki: ki, index: i})
 		} else if ki > h.Get(0).ki {
 			heap.Push(&h, sampleHeapItem{ki: ki, index: i})
-			if h.Len() > targetNum {
+			if h.Len() > sampleNum {
 				heap.Pop(&h)
 			}
 		}
 	}
 
-	var results = make([]int, targetNum)
-	for i := 0; i < targetNum; i++ {
+	var results = make([]int, sampleNum)
+	for i := 0; i < sampleNum; i++ {
 		results[i] = h.Get(i).index
 	}
 
