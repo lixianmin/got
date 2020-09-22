@@ -2,6 +2,7 @@ package filex
 
 import (
 	"bufio"
+	"io"
 	"os"
 )
 
@@ -24,17 +25,20 @@ func ReadLines(path string, handler func(line string) bool) error {
 	for {
 		var buffer, err = reader.ReadBytes('\n')
 		if err != nil {
-			break
+			if err == io.EOF {
+				// 最后一行了，没有结尾的'\n'，所以也不需要移除了
+				var line = string(buffer)
+				handler(line)
+			}
+			return err
 		}
 
 		var line = string(buffer[:len(buffer)-1])
 		var ok = handler(line)
 		if !ok {
-			break
+			return nil
 		}
 	}
-
-	return err
 }
 
 func ReadAllLines(path string) ([]string, error) {
@@ -50,12 +54,15 @@ func ReadAllLines(path string) ([]string, error) {
 	for {
 		var buffer, err = reader.ReadBytes('\n')
 		if err != nil {
-			break
+			if err == io.EOF {
+				// 最后一行了，没有结尾的'\n'，所以也不需要移除了
+				var line = string(buffer)
+				lines = append(lines, line)
+			}
+			return lines, err
 		}
 
 		var line = string(buffer[:len(buffer)-1])
 		lines = append(lines, line)
 	}
-
-	return lines, err
 }
