@@ -35,11 +35,11 @@ func TestWheelTicker(t *testing.T) {
 
 		for {
 			select {
-			case <-timer1.C():
-				timer1.Restart()
+			case <-timer1.C:
+				timer1.Reset()
 				fmt.Printf("every 1s : %s \n", timex.FormatTime(time.Now()))
-			case <-timer5.C():
-				timer5.Restart()
+			case <-timer5.C:
+				timer5.Reset()
 				fmt.Printf("at the 5 second : %s \n", time.Since(startTime).String())
 				return
 			}

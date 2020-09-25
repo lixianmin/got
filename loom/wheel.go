@@ -64,7 +64,7 @@ func (wheel *Wheel) NewTimer(interval time.Duration) *WheelTimer {
 		interval: interval,
 	}
 
-	timer.reset(interval)
+	timer.Reset()
 	return timer
 }
 
