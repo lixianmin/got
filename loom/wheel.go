@@ -17,8 +17,7 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type wheelData struct {
-	valid int32
-	c     chan struct{}
+	c chan struct{}
 }
 
 type Wheel struct {
@@ -47,7 +46,7 @@ func NewWheel(step time.Duration, bucketNum int) *Wheel {
 
 	var channels = make([]unsafe.Pointer, bucketNum)
 	for i := range channels {
-		channels[i] = unsafe.Pointer(newWheelData())
+		channels[i] = unsafe.Pointer(&wheelData{c: make(chan struct{})})
 	}
 
 	wheel.channels = channels
@@ -105,20 +104,12 @@ func (wheel *Wheel) onTicker() {
 	var lastItem = (*wheelData)(atomic.LoadPointer(&wheel.channels[position]))
 
 	// 修改chan
-	atomic.StorePointer(&wheel.channels[position], unsafe.Pointer(newWheelData()))
+	atomic.StorePointer(&wheel.channels[position], unsafe.Pointer(&wheelData{c: make(chan struct{})}))
 
 	// 修改position
 	position = (position + 1) % wheel.bucketsSize
 	atomic.StoreInt64(&wheel.position, int64(position))
 
 	// 关闭chan
-	atomic.StoreInt32(&lastItem.valid, 0)
 	close(lastItem.c)
-}
-
-func newWheelData() *wheelData {
-	return &wheelData{
-		valid: 1,
-		c:     make(chan struct{}),
-	}
 }
