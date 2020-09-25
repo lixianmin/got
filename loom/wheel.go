@@ -59,21 +59,21 @@ func (wheel *Wheel) Close() error {
 	return wheel.wc.Close(nil)
 }
 
-func (wheel *Wheel) NewTicker(interval time.Duration) *WheelTicker {
+func (wheel *Wheel) NewTimer(interval time.Duration) *WheelTimer {
+	var timer = &WheelTimer{
+		wheel:    wheel,
+		interval: interval,
+	}
+
+	timer.Reset(interval)
+	return timer
+}
+
+func (wheel *Wheel) fetchWheelData(interval time.Duration) *wheelData {
 	if interval < 0 || interval >= wheel.maxTimeout {
 		panic("step should be in range [0, maxTimeout)")
 	}
 
-	var ticker = &WheelTicker{
-		wheel:    wheel,
-		interval: interval,
-		data:     wheel.fetchWheelData(interval),
-	}
-
-	return ticker
-}
-
-func (wheel *Wheel) fetchWheelData(interval time.Duration) *wheelData {
 	var index = int(interval / wheel.step)
 	if index > 0 {
 		index--
@@ -84,15 +84,6 @@ func (wheel *Wheel) fetchWheelData(interval time.Duration) *wheelData {
 	// 由于缺少lock控制，这里有可能取到已经被关闭的chan，但这没有关系，已经关闭的说明时刻已经过去了，立即返回就好
 	var data = (*wheelData)(atomic.LoadPointer(&wheel.channels[index]))
 	return data
-}
-
-func (wheel *Wheel) After(timeout time.Duration) <-chan struct{} {
-	if timeout < 0 || timeout >= wheel.maxTimeout {
-		panic("timeout < 0, or >= maxTimeout")
-	}
-
-	var data = wheel.fetchWheelData(timeout)
-	return data.c
 }
 
 func (wheel *Wheel) goLoop(later Later) {
