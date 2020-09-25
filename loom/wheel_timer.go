@@ -20,10 +20,10 @@ type WheelTimer struct {
 }
 
 func (my *WheelTimer) Restart() {
-	my.Reset(my.interval)
+	my.reset(my.interval)
 }
 
-func (my *WheelTimer) Reset(interval time.Duration) {
+func (my *WheelTimer) reset(interval time.Duration) {
 	var data = my.wheel.fetchWheelData(interval)
 	atomic.StorePointer(&my.data, unsafe.Pointer(data))
 }
