@@ -64,3 +64,32 @@ func TestNewTaskQueue(t *testing.T) {
 		return nil, nil
 	})
 }
+
+func TestTaskQueue_SendDelayed(t *testing.T) {
+	var tasks = NewTaskQueue(TaskQueueArgs{})
+	var closeChan = make(chan struct{})
+	var delayedTime = 2 * time.Second
+
+	tasks.SendDelayed(delayedTime, func(args interface{}) (i interface{}, e error) {
+		fmt.Printf("--> args=%v, delayedTime=%s\n", args, delayedTime.String())
+		time.Sleep(time.Second)
+		close(closeChan)
+		return nil, nil
+	})
+
+	go func() {
+		for {
+			select {
+			case task := <-tasks.C:
+				var err = task.Do(1)
+				if err != nil {
+					println(err)
+				}
+			case <-closeChan:
+				break
+			}
+		}
+	}()
+
+	<-closeChan
+}

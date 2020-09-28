@@ -1,5 +1,7 @@
 package loom
 
+import "time"
+
 /********************************************************************
 created:    2020-08-25
 author:     lixianmin
@@ -10,6 +12,10 @@ author:     lixianmin
 
 Copyright (C) - All Rights Reserved
 *********************************************************************/
+
+var globalTaskDelayedQueue = newTaskDelayedQueue()
+
+type TaskHandler func(args interface{}) (interface{}, error)
 
 type ITask interface {
 	Do(args interface{}) error
@@ -43,7 +49,7 @@ func (my *TaskQueue) SendTask(task ITask) ITask {
 	return task
 }
 
-func (my *TaskQueue) SendCallback(handler func(args interface{}) (result interface{}, err error)) ITask {
+func (my *TaskQueue) SendCallback(handler TaskHandler) ITask {
 	if handler == nil {
 		return taskEmpty{}
 	}
@@ -57,4 +63,13 @@ func (my *TaskQueue) SendCallback(handler func(args interface{}) (result interfa
 	}
 
 	return task
+}
+
+func (my *TaskQueue) SendDelayed(delayed time.Duration, handler TaskHandler) {
+	if handler == nil {
+		return
+	}
+
+	var task = newTaskDelayed(my, delayed, handler)
+	globalTaskDelayedQueue.PushTask(task)
 }
