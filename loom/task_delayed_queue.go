@@ -32,7 +32,8 @@ func (my *taskDelayedQueue) goLoop(later Later) {
 	for {
 		select {
 		case <-ticker.C:
-			var timestamp = time.Now().UnixNano()
+			var now = time.Now()
+			var timestamp = now.UnixNano()
 			for pq.Len() > 0 {
 				var task = pq.Top().(*taskDelayed)
 				if task.triggerTime < timestamp {
