@@ -52,3 +52,16 @@ func TestWheelTicker(t *testing.T) {
 	_ = wheel.Close()
 	//select {}
 }
+
+func TestWheel_AfterFunc(t *testing.T) {
+	t.Parallel()
+	wheel := NewWheel(500*time.Millisecond, 20+1)
+
+	var c = make(chan struct{})
+	wheel.AfterFunc(2*time.Second, func() {
+		fmt.Println("after 2s")
+		close(c)
+	})
+
+	<-c
+}

@@ -68,6 +68,20 @@ func (wheel *Wheel) NewTimer(interval time.Duration) *WheelTimer {
 	return timer
 }
 
+func (wheel *Wheel) AfterFunc(timeout time.Duration, callback func()) {
+	if callback == nil {
+		panic("callback = nil")
+	}
+
+	var data = wheel.fetchWheelData(timeout)
+	go func() {
+		select {
+		case <-data.c:
+			callback()
+		}
+	}()
+}
+
 func (wheel *Wheel) fetchWheelData(interval time.Duration) *wheelData {
 	if interval < 0 || interval >= wheel.maxTimeout {
 		panic("step should be in range [0, maxTimeout)")
