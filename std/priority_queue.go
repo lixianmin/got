@@ -84,5 +84,5 @@ func (my *PriorityQueue) Remove(i int) PriorityQueueItem {
 }
 
 func (my *PriorityQueue) Len() int {
-	return my.s.Len()
+	return len(*my.s)
 }

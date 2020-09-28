@@ -13,12 +13,12 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type taskDelayedQueue struct {
-	queue *std.PriorityQueue
+	tasks chan *taskDelayed
 }
 
 func newTaskDelayedQueue() *taskDelayedQueue {
 	var my = &taskDelayedQueue{
-		queue: std.NewPriorityQueue(),
+		tasks: make(chan *taskDelayed, 128),
 	}
 
 	Go(my.goLoop)
@@ -27,7 +27,7 @@ func newTaskDelayedQueue() *taskDelayedQueue {
 
 func (my *taskDelayedQueue) goLoop(later Later) {
 	var ticker = later.NewTicker(1000 * time.Millisecond)
-	var pq = my.queue
+	var pq = std.NewPriorityQueue()
 
 	for {
 		select {
@@ -42,10 +42,12 @@ func (my *taskDelayedQueue) goLoop(later Later) {
 				pq.Pop()
 				_ = task.Do(nil)
 			}
+		case task := <-my.tasks:
+			pq.Push(task)
 		}
 	}
 }
 
 func (my *taskDelayedQueue) PushTask(task *taskDelayed) {
-	my.queue.Push(task)
+	my.tasks <- task
 }
