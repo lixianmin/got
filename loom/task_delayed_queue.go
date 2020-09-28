@@ -36,7 +36,7 @@ func (my *taskDelayedQueue) goLoop(later Later) {
 			var timestamp = now.UnixNano()
 			for pq.Len() > 0 {
 				var task = pq.Top().(*taskDelayed)
-				if task.triggerTime < timestamp {
+				if task.triggerTime > timestamp {
 					break
 				}
 

@@ -68,7 +68,23 @@ func TestNewTaskQueue(t *testing.T) {
 func TestTaskQueue_SendDelayed(t *testing.T) {
 	var tasks = NewTaskQueue(TaskQueueArgs{})
 	var closeChan = make(chan struct{})
-	var delayedTime = 2 * time.Second
+	var delayedTime = 5 * time.Second
+	var startTime = time.Now()
+
+	tasks.SendDelayed(3*time.Second, func(args interface{}) (i interface{}, e error) {
+		fmt.Printf("--> args=%v, delayedTime=3s, deltaTime=%s\n", args, time.Since(startTime).String())
+		return nil, nil
+	})
+
+	tasks.SendDelayed(2*time.Second, func(args interface{}) (i interface{}, e error) {
+		fmt.Printf("--> args=%v, delayedTime=2s, deltaTime=%s\n", args, time.Since(startTime).String())
+		return nil, nil
+	})
+
+	tasks.SendDelayed(1*time.Second, func(args interface{}) (i interface{}, e error) {
+		fmt.Printf("--> args=%v, delayedTime=1s, deltaTime=%s\n", args, time.Since(startTime).String())
+		return nil, nil
+	})
 
 	tasks.SendDelayed(delayedTime, func(args interface{}) (i interface{}, e error) {
 		fmt.Printf("--> args=%v, delayedTime=%s\n", args, delayedTime.String())
