@@ -15,7 +15,10 @@ Copyright (C) - All Rights Reserved
 
 func TestNewTaskQueue(t *testing.T) {
 	var wc WaitClose
-	var tasks = NewTaskChan(4, wc.C())
+	var tasks = NewTaskQueue(TaskQueueArgs{
+		Size:      8,
+		CloseChan: wc.closeChan,
+	})
 
 	type Fetus struct {
 		counter int
@@ -54,7 +57,7 @@ func TestNewTaskQueue(t *testing.T) {
 	}).Get2()
 
 	println(result.(string))
-	wc.Close(nil)
+	_ = wc.Close(nil)
 
 	tasks.SendCallback(func(args interface{}) (result interface{}, err error) {
 		println("oh oops")

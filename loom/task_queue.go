@@ -17,29 +17,22 @@ type ITask interface {
 	Get2() (interface{}, error)
 }
 
-type TaskChan struct {
+type TaskQueue struct {
 	closeChan chan struct{}
 	C         chan ITask
 }
 
-func NewTaskChan(size int, closeChan chan struct{}) *TaskChan {
-	if size <= 0 {
-		size = 8
-	}
-
-	if closeChan == nil {
-		closeChan = make(chan struct{})
-	}
-
-	var my = &TaskChan{
-		closeChan: closeChan,
-		C:         make(chan ITask, size),
+func NewTaskQueue(args TaskQueueArgs) *TaskQueue {
+	args.checkInit()
+	var my = &TaskQueue{
+		closeChan: args.CloseChan,
+		C:         make(chan ITask, args.Size),
 	}
 
 	return my
 }
 
-func (my *TaskChan) SendTask(task ITask) ITask {
+func (my *TaskQueue) SendTask(task ITask) ITask {
 	if task != nil {
 		select {
 		case <-my.closeChan:
@@ -50,7 +43,7 @@ func (my *TaskChan) SendTask(task ITask) ITask {
 	return task
 }
 
-func (my *TaskChan) SendCallback(handler func(args interface{}) (result interface{}, err error)) ITask {
+func (my *TaskQueue) SendCallback(handler func(args interface{}) (result interface{}, err error)) ITask {
 	if handler == nil {
 		return taskEmpty{}
 	}
