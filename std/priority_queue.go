@@ -11,15 +11,15 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type PriorityQueueItem interface {
+type Comparable interface {
 	Less(other interface{}) bool
 }
 
-type sorter []PriorityQueueItem
+type sorter []Comparable
 
 // Implement heap.Interface: Push, Pop, Len, Less, Swap
 func (s *sorter) Push(x interface{}) {
-	*s = append(*s, x.(PriorityQueueItem))
+	*s = append(*s, x.(Comparable))
 }
 
 func (s *sorter) Pop() interface{} {
@@ -58,29 +58,29 @@ func NewPriorityQueue() *PriorityQueue {
 	return my
 }
 
-func (my *PriorityQueue) Push(x PriorityQueueItem) {
+func (my *PriorityQueue) Push(x Comparable) {
 	heap.Push(my.s, x)
 }
 
-func (my *PriorityQueue) Pop() PriorityQueueItem {
-	return heap.Pop(my.s).(PriorityQueueItem)
+func (my *PriorityQueue) Pop() Comparable {
+	return heap.Pop(my.s).(Comparable)
 }
 
-func (my *PriorityQueue) Top() PriorityQueueItem {
+func (my *PriorityQueue) Top() Comparable {
 	if len(*my.s) > 0 {
-		return (*my.s)[0].(PriorityQueueItem)
+		return (*my.s)[0].(Comparable)
 	}
 
 	return nil
 }
 
-func (my *PriorityQueue) Fix(x PriorityQueueItem, i int) {
+func (my *PriorityQueue) Fix(x Comparable, i int) {
 	(*my.s)[i] = x
 	heap.Fix(my.s, i)
 }
 
-func (my *PriorityQueue) Remove(i int) PriorityQueueItem {
-	return heap.Remove(my.s, i).(PriorityQueueItem)
+func (my *PriorityQueue) Remove(i int) Comparable {
+	return heap.Remove(my.s, i).(Comparable)
 }
 
 func (my *PriorityQueue) Len() int {
