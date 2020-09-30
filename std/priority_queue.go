@@ -49,11 +49,12 @@ type PriorityQueue struct {
 	s *sorter
 }
 
-func NewPriorityQueue() *PriorityQueue {
+func NewPriorityQueue(capacity int) *PriorityQueue {
 	var my = &PriorityQueue{
 		s: new(sorter),
 	}
 
+	*my.s = make([]Comparable, 0, capacity)
 	heap.Init(my.s)
 	return my
 }

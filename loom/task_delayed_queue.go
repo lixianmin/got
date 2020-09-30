@@ -27,7 +27,7 @@ func newTaskDelayedQueue() *taskDelayedQueue {
 
 func (my *taskDelayedQueue) goLoop(later Later) {
 	var ticker = later.NewTicker(1000 * time.Millisecond)
-	var pq = std.NewPriorityQueue()
+	var pq = std.NewPriorityQueue(32)
 
 	for {
 		select {

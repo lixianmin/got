@@ -34,7 +34,7 @@ func TestTaskDelayedQueue(t *testing.T) {
 		{priority: 3},
 	}
 
-	var pq = NewPriorityQueue()
+	var pq = NewPriorityQueue(8)
 	for _, item := range items {
 		pq.Push(item)
 	}
