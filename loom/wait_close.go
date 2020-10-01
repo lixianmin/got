@@ -43,26 +43,28 @@ func (wc *WaitClose) WaitUtil(timeout time.Duration) bool {
 	}
 }
 
+// 2020-10-01
+// 如果callback!=nil，则只要state != closed，就应该执行一下callback()
 func (wc *WaitClose) Close(callback func() error) error {
-	if wcInitialized == atomic.LoadInt32(&wc.state) {
+	if wcClosed != atomic.LoadInt32(&wc.state) {
 		wc.mutex.Lock()
-		if callback == nil {
+		// 因为有外来的callback方法，所以有可能panic
+		defer func() {
+			wc.mutex.Unlock()
+			if r := recover(); r != nil {
+				fmt.Printf("%v\n", r)
+			}
+		}()
+
+		// 双重检查
+		if wcClosed != wc.state {
 			if wcInitialized == wc.state {
-				atomic.StoreInt32(&wc.state, wcClosed)
 				close(wc.closeChan)
 			}
-			wc.mutex.Unlock()
-		} else { // 因为有外来的callback方法，所以有可能panic
-			defer func() {
-				wc.mutex.Unlock()
-				if r := recover(); r != nil {
-					fmt.Printf("%v\n", r)
-				}
-			}()
 
-			if wcInitialized == wc.state {
-				atomic.StoreInt32(&wc.state, wcClosed)
-				close(wc.closeChan)
+			// 即使未初始化的，也直接关闭掉
+			atomic.StoreInt32(&wc.state, wcClosed)
+			if callback != nil {
 				return callback()
 			}
 		}

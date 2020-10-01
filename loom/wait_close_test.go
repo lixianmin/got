@@ -55,8 +55,7 @@ func TestWaitClose_Close(t *testing.T) {
 	t.Parallel()
 	var wc WaitClose
 
-	wc.WaitUtil(time.Millisecond)
-
+	// 即使未初始化过的wc，也应该可以正常调用结束
 	var f = func() {
 		_ = wc.Close(func() error {
 			println("closed once")
@@ -67,6 +66,8 @@ func TestWaitClose_Close(t *testing.T) {
 	go f()
 	go f()
 	go f()
+
+	time.Sleep(time.Second)
 }
 
 func TestWaitClose_Close2(t *testing.T) {
