@@ -4,9 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strings"
-	"time"
 )
 
 /********************************************************************
@@ -16,32 +14,6 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type RequestArgs struct {
-	Builder func(request *http.Request) url.Values // 配置request
-	Timeout time.Duration                          // 控制从链接建立到返回的整个生命周期的时间
-}
-
-func emptyRequestBuilder(request *http.Request) url.Values {
-	return nil
-}
-
-func checkRequestArgs(args ...RequestArgs) RequestArgs {
-	var arg = RequestArgs{}
-	if len(args) > 0 {
-		arg = args[0]
-	}
-
-	if arg.Timeout <= 0 {
-		arg.Timeout = 10 * time.Second
-	}
-
-	if arg.Builder == nil {
-		arg.Builder = emptyRequestBuilder
-	}
-
-	return arg
-}
-
 //func CopyHeader(dst, src http.Header) {
 //	for k, vv := range src {
 //		for _, v := range vv {
@@ -50,16 +22,16 @@ func checkRequestArgs(args ...RequestArgs) RequestArgs {
 //	}
 //}
 
-func Get(url string, args ...RequestArgs) ([]byte, error) {
-	return Request(context.Background(), "GET", url, args...)
+func Get(url string, options ...Option) ([]byte, error) {
+	return Request(context.Background(), "GET", url, options...)
 }
 
-func Post(url string, args ...RequestArgs) ([]byte, error) {
-	return Request(context.Background(), "POST", url, args...)
+func Post(url string, options ...Option) ([]byte, error) {
+	return Request(context.Background(), "POST", url, options...)
 }
 
-func Request(ctx context.Context, method string, url string, args ...RequestArgs) ([]byte, error) {
-	var arg = checkRequestArgs(args...)
+func Request(ctx context.Context, method string, url string, options ...Option) ([]byte, error) {
+	var opts = createOptions(options)
 
 	request, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
@@ -67,7 +39,7 @@ func Request(ctx context.Context, method string, url string, args ...RequestArgs
 	}
 
 	// 重新配置request
-	var values = arg.Builder(request)
+	var values = opts.RequestBuilder(request)
 	if values != nil {
 		switch method {
 		case "GET":
@@ -78,7 +50,7 @@ func Request(ctx context.Context, method string, url string, args ...RequestArgs
 	}
 
 	var client = http.Client{
-		Timeout: arg.Timeout,
+		Timeout: opts.Timeout,
 	}
 
 	response, err := client.Do(request)
@@ -88,6 +60,7 @@ func Request(ctx context.Context, method string, url string, args ...RequestArgs
 
 	var responseBody = response.Body
 	defer responseBody.Close()
+
 	bodyBytes, err := ioutil.ReadAll(responseBody)
 	return bodyBytes, err
 }
