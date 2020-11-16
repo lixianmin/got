@@ -56,7 +56,7 @@ func (my *Map) Put(key interface{}, value interface{}) interface{} {
 			shard.items[key] = value
 		} else {
 			shard.items[key] = value
-			my.size += 1
+			my.addSize(1)
 		}
 	}
 	shard.Unlock()
@@ -73,7 +73,7 @@ func (my *Map) Remove(key interface{}) interface{} {
 		last, has = shard.items[key]
 		if has {
 			delete(shard.items, key)
-			my.size -= 1
+			my.addSize(-1)
 		}
 	}
 	shard.Unlock()
@@ -116,7 +116,7 @@ func (my *Map) PutIfAbsent(key interface{}, value interface{}) interface{} {
 		last, has = shard.items[key]
 		if !has {
 			shard.items[key] = value
-			my.size += 1
+			my.addSize(1)
 		}
 	}
 	shard.Unlock()
@@ -144,7 +144,7 @@ func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) in
 	// 如果没有，则创建一个放入到容器中
 	var item = creator(key)
 	shard.items[key] = item
-	my.size += 1
+	my.addSize(1)
 	return item
 }
 
@@ -191,26 +191,37 @@ func (my *Map) Size() int {
 	return int(atomic.LoadInt64(&my.size))
 }
 
+// 调整my.size时使用atomic.AddInt64()而不是直接my.size += delta，参考sync.Once的doSlow()中对done字段的修改
+func (my *Map) addSize(delta int64) {
+	atomic.AddInt64(&my.size, delta)
+}
+
 func (my *Map) getShard(key interface{}) *shardItem {
 	var pData = (*[]*shardItem)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&my.data))))
 	if pData == nil {
-		my.m.Lock()
-		if my.data == nil {
-			var slice = make([]*shardItem, shardCount)
-			for i := 0; i < shardCount; i++ {
-				var item = &shardItem{items: make(ShardTable, 4)}
-				slice[i] = item
-			}
-
-			my.data = &slice
-		}
-		pData = my.data
-		my.m.Unlock()
+		pData = my.getShardSlow()
 	}
 
 	var index = getShardIndex(key)
 	var shard = (*pData)[index]
 	return shard
+}
+
+// 将slow方法提取出来，减小主方法体的大小，提高主方法体inline的可能性
+func (my *Map) getShardSlow() *[]*shardItem {
+	my.m.Lock()
+	if my.data == nil {
+		var slice = make([]*shardItem, shardCount)
+		for i := 0; i < shardCount; i++ {
+			var item = &shardItem{items: make(ShardTable, 4)}
+			slice[i] = item
+		}
+
+		my.data = &slice
+	}
+	var pData = my.data
+	my.m.Unlock()
+	return pData
 }
 
 func fnv32(key string) uint32 {
