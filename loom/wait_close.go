@@ -27,12 +27,18 @@ type WaitClose struct {
 }
 
 func (wc *WaitClose) C() chan struct{} {
-	wc.checkInit()
+	if wcNew == atomic.LoadInt32(&wc.state) {
+		wc.checkInitSlow()
+	}
+
 	return wc.closeChan
 }
 
 func (wc *WaitClose) WaitUtil(timeout time.Duration) bool {
-	wc.checkInit()
+	if wcNew == atomic.LoadInt32(&wc.state) {
+		wc.checkInitSlow()
+	}
+
 	var timer = time.NewTimer(timeout)
 	select {
 	case <-wc.closeChan:
@@ -77,13 +83,13 @@ func (wc *WaitClose) IsClosed() bool {
 	return atomic.LoadInt32(&wc.state) == wcClosed
 }
 
-func (wc *WaitClose) checkInit() {
-	if wcNew == atomic.LoadInt32(&wc.state) {
-		wc.mutex.Lock()
-		if wcNew == wc.state {
-			wc.closeChan = make(chan struct{})
-			atomic.StoreInt32(&wc.state, wcInitialized)
-		}
-		wc.mutex.Unlock()
+// 1. 提取一个slow()方法，是为了让checkInit()方法可以inline
+// 2. 进一步了，移除了checkInit()方法，手动inline了
+func (wc *WaitClose) checkInitSlow() {
+	wc.mutex.Lock()
+	if wcNew == wc.state {
+		wc.closeChan = make(chan struct{})
+		atomic.StoreInt32(&wc.state, wcInitialized)
 	}
+	wc.mutex.Unlock()
 }
