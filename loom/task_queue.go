@@ -28,11 +28,11 @@ type TaskQueue struct {
 	C         chan ITask
 }
 
-func NewTaskQueue(args TaskQueueArgs) *TaskQueue {
-	args.checkInit()
+func NewTaskQueue(options ...Option) *TaskQueue {
+	var opts = createOptions(options)
 	var my = &TaskQueue{
-		closeChan: args.CloseChan,
-		C:         make(chan ITask, args.Size),
+		closeChan: opts.CloseChan,
+		C:         make(chan ITask, opts.Size),
 	}
 
 	return my

@@ -15,10 +15,7 @@ Copyright (C) - All Rights Reserved
 
 func TestNewTaskQueue(t *testing.T) {
 	var wc WaitClose
-	var tasks = NewTaskQueue(TaskQueueArgs{
-		Size:      8,
-		CloseChan: wc.closeChan,
-	})
+	var tasks = NewTaskQueue(WithSize(8), WithCloseChan(wc.C()))
 
 	type Fetus struct {
 		counter int
@@ -66,7 +63,7 @@ func TestNewTaskQueue(t *testing.T) {
 }
 
 func TestTaskQueue_SendDelayed(t *testing.T) {
-	var tasks = NewTaskQueue(TaskQueueArgs{})
+	var tasks = NewTaskQueue()
 	var closeChan = make(chan struct{})
 	var delayedTime = 5 * time.Second
 	var startTime = time.Now()
