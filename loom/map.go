@@ -19,6 +19,9 @@ author:     lixianmin
 todo 是否将loom.Map分uint32, uint64与string，分类型初始化？
 	1. 这对速度和内存占用可能会是一个bonus，我们通常只需要value是interface{}，而key不需要太复杂的类型（本来我们也没支持几种类型）；
 	2. 这会导致同时只能存储单一的key类型，比如只能存储int或string。不过，大部分情况下我们的key的确是单一类型；
+	3. 编译器不能帮助发现错误，这有可能会导致运行时的bug
+	4. 如果分为IntMap与StringMap的话，则会导致相同的代码写好两遍，并给使用和维护带来不便
+	5. 这个问题也许可以靠10年以后的泛型解决
 
 todo 减少默认sharding数？同时增加一个只允许调用一次SetSharding(count)方法
 	1. 跟直接加一个NewMap(shardingCount)初始化方法相比孰优孰劣？减小初始化大小会降低内存使用量（为什么印象里实测并没有减少内存使用量？）
@@ -46,16 +49,16 @@ type Map struct {
 
 // 如果已经存在了相同key的value，则覆盖找返回以前存在的那一个值；否则返回nil
 func (my *Map) Put(key interface{}, value interface{}) interface{} {
-	var shard = my.getShard(key)
+	var shard, normalizedKey = my.getShard(key)
 	var last interface{}
 	var has = false
 	shard.Lock()
 	{
-		last, has = shard.items[key]
+		last, has = shard.items[normalizedKey]
 		if has {
-			shard.items[key] = value
+			shard.items[normalizedKey] = value
 		} else {
-			shard.items[key] = value
+			shard.items[normalizedKey] = value
 			my.addSize(1)
 		}
 	}
@@ -65,14 +68,14 @@ func (my *Map) Put(key interface{}, value interface{}) interface{} {
 
 // 如果存在，则删除，并返回该值
 func (my *Map) Remove(key interface{}) interface{} {
-	var shard = my.getShard(key)
+	var shard, normalizedKey = my.getShard(key)
 	var last interface{}
 	var has = false
 	shard.Lock()
 	{
-		last, has = shard.items[key]
+		last, has = shard.items[normalizedKey]
 		if has {
-			delete(shard.items, key)
+			delete(shard.items, normalizedKey)
 			my.addSize(-1)
 		}
 	}
@@ -82,14 +85,14 @@ func (my *Map) Remove(key interface{}) interface{} {
 
 // 如果map中存在，则返回；否则返回nil
 func (my *Map) Get1(key interface{}) interface{} {
-	var shard = my.getShard(key)
-	var last, _ = my.getInner(shard, key)
+	var shard, normalizedKey = my.getShard(key)
+	var last, _ = my.getInner(shard, normalizedKey)
 	return last
 }
 
 func (my *Map) Get2(key interface{}) (interface{}, bool) {
-	var shard = my.getShard(key)
-	return my.getInner(shard, key)
+	var shard, normalizedKey = my.getShard(key)
+	return my.getInner(shard, normalizedKey)
 }
 
 func (my *Map) getInner(shard *shardItem, key interface{}) (interface{}, bool) {
@@ -105,17 +108,17 @@ func (my *Map) getInner(shard *shardItem, key interface{}) (interface{}, bool) {
 
 // 这其实是一种get命令：如果key对应的value已经存在，则返回存在的value，不进行替换；如果不存在，就添加key和value，然后返回nil
 func (my *Map) PutIfAbsent(key interface{}, value interface{}) interface{} {
-	var shard = my.getShard(key)
-	var last, has = my.getInner(shard, key)
+	var shard, normalizedKey = my.getShard(key)
+	var last, has = my.getInner(shard, normalizedKey)
 	if has {
 		return last
 	}
 
 	shard.Lock()
 	{
-		last, has = shard.items[key]
+		last, has = shard.items[normalizedKey]
 		if !has {
-			shard.items[key] = value
+			shard.items[normalizedKey] = value
 			my.addSize(1)
 		}
 	}
@@ -125,8 +128,8 @@ func (my *Map) PutIfAbsent(key interface{}, value interface{}) interface{} {
 
 // 如果原来存在，则返回原来的值；否则使用creator创建一个新值，放到到map中，则返回它
 func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) interface{}) interface{} {
-	var shard = my.getShard(key)
-	var last, has = my.getInner(shard, key)
+	var shard, normalizedKey = my.getShard(key)
+	var last, has = my.getInner(shard, normalizedKey)
 	if has {
 		return last
 	}
@@ -136,21 +139,21 @@ func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) in
 
 	// 加x锁后需要重新测试有没有数据
 	// 如果creator=nil，也就不会重新生成了
-	last, has = shard.items[key]
+	last, has = shard.items[normalizedKey]
 	if has || creator == nil {
 		return last
 	}
 
 	// 如果没有，则创建一个放入到容器中
 	var item = creator(key)
-	shard.items[key] = item
+	shard.items[normalizedKey] = item
 	my.addSize(1)
 	return item
 }
 
 // 为什么会有这么奇怪的一个方法？有时，我们需要在锁定某个key的情况下执行某些操作，防止在操作的过程中该key被插入导致不一致性
 func (my *Map) WithLock(key interface{}, handler func(table ShardTable)) {
-	var shard = my.getShard(key)
+	var shard, _ = my.getShard(key)
 	shard.Lock()
 	defer shard.Unlock() // 用defer是因为不知道handler会不会panic
 	handler(shard.items)
@@ -196,15 +199,15 @@ func (my *Map) addSize(delta int64) {
 	atomic.AddInt64(&my.size, delta)
 }
 
-func (my *Map) getShard(key interface{}) *shardItem {
+func (my *Map) getShard(key interface{}) (*shardItem, interface{}) {
 	var pData = (*[]*shardItem)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&my.data))))
 	if pData == nil {
 		pData = my.getShardSlow()
 	}
 
-	var index = getShardIndex(key)
+	var index, normalizedKey = getShardIndex(key)
 	var shard = (*pData)[index]
-	return shard
+	return shard, normalizedKey
 }
 
 // 将slow方法提取出来，减小主方法体的大小，提高主方法体inline的可能性
@@ -234,36 +237,40 @@ func fnv32(key string) uint32 {
 	return hash
 }
 
-func getShardIndex(key interface{}) int {
-	var next int
+func getShardIndex(key interface{}) (index int, normalizedKey interface{}) {
+	var next int64
 	switch key := key.(type) {
 	case int:
-		next = key
+		next = int64(key)
 	case int8:
-		next = int(key)
+		next = int64(key)
 	case int16:
-		next = int(key)
+		next = int64(key)
 	case int32:
-		next = int(key)
+		next = int64(key)
 	case int64:
-		next = int(key)
+		next = key
 	case uint8:
-		next = int(key)
+		next = int64(key)
 	case uint16:
-		next = int(key)
+		next = int64(key)
 	case uint32:
-		next = int(key)
+		next = int64(key)
 	case uint64:
-		next = int(key)
+		next = int64(key)
 	case string:
-		next = int(fnv32(key))
+		next = int64(fnv32(key))
+		index = int(next) & shardCountMinus1
+		normalizedKey = key
+		return
 	default:
 		var message = fmt.Sprintf("Not supported key type, key= %v", key)
 		panic(message)
 	}
 
-	var index = next & shardCountMinus1
-	return index
+	index = int(next) & shardCountMinus1
+	normalizedKey = next
+	return
 }
 
 // 由于getShardIndex()算法需要，这个shardCount必须是 2 的指数倍

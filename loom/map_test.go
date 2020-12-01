@@ -13,6 +13,63 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
+func TestMap_PutDifferentIntKeys(t *testing.T) {
+	var m Map
+
+	const key = 1029
+	m.Put(key, key)
+
+	if m.Get1(key) != key {
+		t.Fatalf("value should be %d", key)
+	}
+
+	if m.Get1(int16(key)) != key {
+		t.Fatalf("value should be %d", key)
+	}
+
+	if m.Get1(uint16(key)) != key {
+		t.Fatalf("value should be %d", key)
+	}
+
+	if m.Get1(int32(key)) != key {
+		t.Fatalf("value should be %d", key)
+	}
+
+	if m.Get1(uint32(key)) != key {
+		t.Fatalf("value should be %d", key)
+	}
+
+	if m.Get1(int64(key)) != key {
+		t.Fatalf("value should be %d", key)
+	}
+
+	if m.Get1(uint64(key)) != key {
+		t.Fatalf("value should be %d", key)
+	}
+}
+
+func TestMap_PutStringAndIntKeys(t *testing.T) {
+	var m Map
+	m.Put("hello", "world")
+
+	const intKey = 1029
+	m.ComputeIfAbsent(intKey, func(key interface{}) interface{} {
+		return key
+	})
+
+	if m.Size() != 2 {
+		t.Fatalf("size should be 2")
+	}
+
+	if m.Get1("hello") != "world" {
+		t.Fatalf("value should be world")
+	}
+
+	if m.Get1(intKey) != intKey {
+		t.Fatalf("value should be %d", intKey)
+	}
+}
+
 func TestMap_ComputeIfAbsent(t *testing.T) {
 	t.Parallel()
 	var m Map
