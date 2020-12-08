@@ -39,6 +39,10 @@ func (wc *WaitClose) WaitUtil(timeout time.Duration) bool {
 		wc.checkInitSlow()
 	}
 
+	if wc.closeChan == nil {
+		panic("wc.closeChan is nil")
+	}
+
 	var timer = time.NewTimer(timeout)
 	select {
 	case <-wc.closeChan:
