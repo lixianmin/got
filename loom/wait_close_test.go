@@ -88,3 +88,21 @@ func TestWaitClose_Close2(t *testing.T) {
 	go f()
 	go f()
 }
+
+func TestWaitClose_WaitUtil_Direct(t *testing.T) {
+	var wc WaitClose
+	wc.WaitUtil(time.Second)
+}
+
+func TestWaitClose_WaitUtil_afterInited(t *testing.T) {
+	var wc WaitClose
+	wc.C()
+	wc.WaitUtil(time.Second)
+}
+
+func TestWaitClose_WaitUtil_Closed(t *testing.T) {
+	var wc WaitClose
+	wc.C()
+	wc.Close(nil)
+	wc.WaitUtil(time.Second)
+}

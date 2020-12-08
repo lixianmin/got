@@ -39,10 +39,6 @@ func (wc *WaitClose) WaitUtil(timeout time.Duration) bool {
 		wc.checkInitSlow()
 	}
 
-	if wc.closeChan == nil {
-		panic("wc.closeChan is nil")
-	}
-
 	var timer = time.NewTimer(timeout)
 	select {
 	case <-wc.closeChan:
@@ -91,9 +87,17 @@ func (wc *WaitClose) IsClosed() bool {
 // 2. 进一步了，移除了checkInit()方法，手动inline了
 func (wc *WaitClose) checkInitSlow() {
 	wc.mutex.Lock()
-	if wcNew == wc.state {
-		wc.closeChan = make(chan struct{})
-		atomic.StoreInt32(&wc.state, wcInitialized)
+	{
+		if wcNew == wc.state {
+			wc.closeChan = make(chan struct{})
+			atomic.StoreInt32(&wc.state, wcInitialized)
+		}
 	}
 	wc.mutex.Unlock()
+
+	// 下面这个断言有可能失败，好奇怪
+	if wc.closeChan == nil {
+		var message = fmt.Sprintf("closeChan is nil, state=%d, state=%d", wc.state, atomic.LoadInt32(&wc.state))
+		panic(message)
+	}
 }
