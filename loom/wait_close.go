@@ -20,6 +20,13 @@ const (
 	wcClosed
 )
 
+var globalClosedChan = make(chan struct{})
+
+func init() {
+	// globalClosedChan用于保证wc.closeChan在任何情况下都不为nil，因为closed与nil这两种chan的表现很不一样
+	close(globalClosedChan)
+}
+
 type WaitClose struct {
 	closeChan chan struct{}
 	mutex     sync.Mutex
@@ -30,7 +37,7 @@ func (wc *WaitClose) C() chan struct{} {
 	if wcNew == atomic.LoadInt32(&wc.state) {
 		wc.checkInitSlow()
 	}
-	wc.assetCloseChanNotNil()
+	//wc.assetCloseChanNotNil()
 
 	return wc.closeChan
 }
@@ -39,7 +46,7 @@ func (wc *WaitClose) WaitUtil(timeout time.Duration) bool {
 	if wcNew == atomic.LoadInt32(&wc.state) {
 		wc.checkInitSlow()
 	}
-	wc.assetCloseChanNotNil()
+	//wc.assetCloseChanNotNil()
 
 	var timer = time.NewTimer(timeout)
 	select {
@@ -68,6 +75,8 @@ func (wc *WaitClose) Close(callback func() error) error {
 		if wcClosed != wc.state {
 			if wcInitialized == wc.state {
 				close(wc.closeChan)
+			} else {
+				wc.closeChan = globalClosedChan
 			}
 
 			// 即使未初始化的，也直接关闭掉

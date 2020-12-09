@@ -91,6 +91,11 @@ func TestWaitClose_Close2(t *testing.T) {
 
 func TestWaitClose_WaitUtil_Direct(t *testing.T) {
 	var wc WaitClose
+	wc.Close(nil)
+	wc.WaitUtil(time.Second)
+
+	var wc2 WaitClose
+	wc2.Close(nil)
 	wc.WaitUtil(time.Second)
 }
 
