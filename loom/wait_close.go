@@ -30,6 +30,7 @@ func (wc *WaitClose) C() chan struct{} {
 	if wcNew == atomic.LoadInt32(&wc.state) {
 		wc.checkInitSlow()
 	}
+	wc.assetCloseChanNotNil()
 
 	return wc.closeChan
 }
@@ -38,6 +39,7 @@ func (wc *WaitClose) WaitUtil(timeout time.Duration) bool {
 	if wcNew == atomic.LoadInt32(&wc.state) {
 		wc.checkInitSlow()
 	}
+	wc.assetCloseChanNotNil()
 
 	var timer = time.NewTimer(timeout)
 	select {
@@ -94,7 +96,9 @@ func (wc *WaitClose) checkInitSlow() {
 		}
 	}
 	wc.mutex.Unlock()
+}
 
+func (wc *WaitClose) assetCloseChanNotNil() {
 	// 下面这个断言有可能失败，好奇怪
 	if wc.closeChan == nil {
 		var message = fmt.Sprintf("closeChan is nil, state=%d, state=%d", wc.state, atomic.LoadInt32(&wc.state))
