@@ -1,6 +1,8 @@
 package sortx
 
-import "reflect"
+import (
+	"reflect"
+)
 
 /********************************************************************
 created:    2021-01-07
@@ -9,16 +11,24 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-func SortBy(keys interface{}, values interface{}, less func(i, j int) bool) {
-	//sort.Slice()
-	//sort.Reverse()
-}
+// 将keys和values同步排序
+func SliceBy(keys interface{}, values interface{}, less func(i, j int) bool) {
+	var keyValues = reflect.ValueOf(keys)
+	var valValues = reflect.ValueOf(values)
 
-func Slice(slice interface{}, less func(i, j int) bool) {
-	rv := reflect.ValueOf(slice)
-	swap := reflect.Swapper(slice)
-	length := rv.Len()
-	quickSort_func(lessSwap{less, swap}, 0, length, maxDepth(length))
+	var length = keyValues.Len()
+	if length < 2 || length != valValues.Len() {
+		return
+	}
+
+	var keySwapper = reflect.Swapper(keys)
+	var valSwapper = reflect.Swapper(values)
+	var swapper = func(i int, j int) {
+		keySwapper(i, j)
+		valSwapper(i, j)
+	}
+
+	quickSort_func(lessSwap{less, swapper}, 0, length, maxDepth(length))
 }
 
 // lessSwap is a pair of Less and Swap function for use with the
