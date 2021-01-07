@@ -1,6 +1,7 @@
 package sortx
 
 import (
+	"github.com/lixianmin/got/mathx"
 	"reflect"
 )
 
@@ -16,8 +17,8 @@ func SliceBy(keys interface{}, values interface{}, less func(i, j int) bool) {
 	var keyValues = reflect.ValueOf(keys)
 	var valValues = reflect.ValueOf(values)
 
-	var length = keyValues.Len()
-	if length < 2 || length != valValues.Len() {
+	var length = mathx.MinInt(keyValues.Len(), valValues.Len())
+	if length <= 1 {
 		return
 	}
 
