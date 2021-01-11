@@ -12,7 +12,7 @@ import (
 created:    2020-07-13
 author:     lixianmin
 
-仿java.util.concurrent.ConcurrentMap实现的Map类，主要目标为：
+仿jdk1.8之前ConcurrentHashMap中segment实现的Map类，主要目标为：
 1. 提供更高的写并发度
 2. 提供像ComputeIfAbsent()这样的延迟初始化方法
 
@@ -279,6 +279,12 @@ func fetchShardCount() int {
 	var result = 2
 	for result < numCpu {
 		result <<= 1
+	}
+
+	// 有些cpu可能是256核的，创建太多的shard数可能没有太大的意义
+	const maxShardCount = 32
+	if result > maxShardCount {
+		result = maxShardCount
 	}
 
 	return result
