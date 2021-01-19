@@ -10,7 +10,7 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 const (
-	TimeLayout = "2006-01-02 15:04:05"
-	Day        = 24 * time.Hour
-	Week       = 7 * Day
+	Layout = "2006-01-02 15:04:05"
+	Day    = 24 * time.Hour
+	Week   = 7 * Day
 )
