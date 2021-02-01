@@ -34,6 +34,9 @@ Copyright (C) - All Rights Reserved
 var shardCount = fetchShardCount()
 var shardCountMinus1 = shardCount - 1
 
+// 用于记录快照数据的共享池
+var snapshotPool = newPool(8)
+
 type ShardTable map[interface{}]interface{}
 
 type shardItem struct {
@@ -160,24 +163,36 @@ func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) in
 //	handler(shard.items)
 //}
 
-// 遍历过程还是不希望修改map本身的数据
-// 关于version的检查没有意义：因为Range()过程中如果想尝试修改Map，就需要使用Remove, Add等接口，这会导致死锁
-func (my *Map) Range(f func(key interface{}, value interface{})) {
-	if f == nil {
+// 使用数据快照支持遍历过程，因为无法保证遍历过程中回调方法不调用Add, Remove等方法，必须得避免死锁
+func (my *Map) Range(handler func(key interface{}, value interface{})) {
+	if handler == nil {
 		return
 	}
 
 	var pData = (*[]*shardItem)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&my.data))))
 	if pData != nil {
+		var list = snapshotPool.Get()
 		var data = *pData
 		for i := range data {
 			var shard = data[i]
+			// 获取快照
 			shard.RLock()
 			for k, v := range shard.items {
-				safeRangeHandler(f, k, v)
+				list = append(list, k, v)
 			}
 			shard.RUnlock()
+
+			// 调用回调方法
+			var size = len(list)
+			for i := 0; i < size; i += 2 {
+				var k, v = list[i], list[i+1]
+				safeRangeHandler(handler, k, v)
+			}
+			// 重置list
+			list = list[:0]
 		}
+
+		snapshotPool.Put(list)
 	}
 }
 
@@ -282,7 +297,7 @@ func fetchShardCount() int {
 		result <<= 1
 	}
 
-	// 有些cpu可能是256核的，创建太多的shard数可能没有太大的意义
+	// 有些cpu可能是64核的，创建太多的shard数可能没有太大的意义
 	const maxShardCount = 32
 	if result > maxShardCount {
 		result = maxShardCount
