@@ -1,7 +1,6 @@
 package loom
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 )
@@ -170,15 +169,15 @@ func TestMap_Range(t *testing.T) {
 	}
 }
 
-func TestMap_WithLock(t *testing.T) {
-	var m Map
-	m.Put(1, 1)
-
-	m.WithLock(1, func(table ShardTable) {
-		var v, ok = table[1]
-		fmt.Print(v, ok)
-	})
-}
+//func TestMap_WithLock(t *testing.T) {
+//	var m Map
+//	m.Put(1, 1)
+//
+//	m.WithLock(1, func(table ShardTable) {
+//		var v, ok = table[1]
+//		fmt.Print(v, ok)
+//	})
+//}
 
 func BenchmarkLoomMap_Put(b *testing.B) {
 	b.StartTimer()

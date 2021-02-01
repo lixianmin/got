@@ -151,13 +151,14 @@ func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) in
 	return item
 }
 
-// 为什么会有这么奇怪的一个方法？有时，我们需要在锁定某个key的情况下执行某些操作，防止在操作的过程中该key被插入导致不一致性
-func (my *Map) WithLock(key interface{}, handler func(table ShardTable)) {
-	var shard, _ = my.getShard(key)
-	shard.Lock()
-	defer shard.Unlock() // 用defer是因为不知道handler会不会panic
-	handler(shard.items)
-}
+// 感觉这个方法不应该被开出来，不记得当时写这个方法用来处理哪个项目的问题的，先关闭，有问题再说
+//// 为什么会有这么奇怪的一个方法？有时，我们需要在锁定某个key的情况下执行某些操作，防止在操作的过程中该key被插入导致不一致性
+//func (my *Map) WithLock(key interface{}, handler func(table ShardTable)) {
+//	var shard, _ = my.getShard(key)
+//	shard.Lock()
+//	defer shard.Unlock() // 用defer是因为不知道handler会不会panic
+//	handler(shard.items)
+//}
 
 // 遍历过程还是不希望修改map本身的数据
 // 关于version的检查没有意义：因为Range()过程中如果想尝试修改Map，就需要使用Remove, Add等接口，这会导致死锁
