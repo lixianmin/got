@@ -1,8 +1,6 @@
 package loom
 
 import (
-	"fmt"
-	"io"
 	"time"
 )
 
@@ -14,42 +12,62 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type Later interface {
-	NewTicker(d time.Duration) *time.Ticker
-	NewTimer(d time.Duration) *time.Timer
+	NewTicker(d time.Duration) *LaterTicker
+}
+
+type stopper interface {
+	Stop()
+	IsStopped() bool
 }
 
 type laterImpl struct {
-	stoppers []interface{}
+	stoppers []stopper
 }
 
-func (later *laterImpl) NewTicker(d time.Duration) *time.Ticker {
-	var ticker = time.NewTicker(d)
-	later.stoppers = append(later.stoppers, ticker)
+func (later *laterImpl) NewTicker(d time.Duration) *LaterTicker {
+	var ticker = &LaterTicker{
+		Ticker:    time.NewTicker(d),
+		isStopped: 0,
+	}
+
+	later.stoppers = append(tailorStopped(later.stoppers), ticker)
 	return ticker
 }
 
-func (later *laterImpl) NewTimer(d time.Duration) *time.Timer {
-	var timer = time.NewTimer(d)
-	later.stoppers = append(later.stoppers, timer)
-	return timer
+func tailorStopped(data []stopper) []stopper {
+	var size = len(data)
+	if size > 0 {
+		var i, j = 0, len(data) - 1
+		for {
+			for i <= j && !data[i].IsStopped() {
+				i++
+			}
+
+			for i < j && data[j].IsStopped() {
+				j--
+			}
+
+			if i < j {
+				data[i], data[j] = data[j], data[i]
+			} else {
+				break
+			}
+		}
+
+		data = data[:i]
+	}
+
+	return data
 }
 
 func (later *laterImpl) stop() {
 	for i := len(later.stoppers) - 1; i >= 0; i-- {
 		var item = later.stoppers[i]
-		switch item := item.(type) {
-		case *time.Ticker:
-			item.Stop()
-		case *time.Timer:
-			item.Stop()
-		case io.Closer:
-			_ = item.Close()
-		default:
-			fmt.Printf("unknown item=%+v", item)
-		}
+		item.Stop()
 	}
 }
 
+// loom.Go()，会启动一个协程，并在defer中调用stop()
 func Go(handler func(later Later)) {
 	go func() {
 		defer DumpIfPanic()
