@@ -13,6 +13,7 @@ Copyright (C) - All Rights Reserved
 
 type Later interface {
 	NewTicker(d time.Duration) *LaterTicker
+	NewTimer(d time.Duration) *LaterTimer
 }
 
 type stopper interface {
@@ -32,6 +33,16 @@ func (later *laterImpl) NewTicker(d time.Duration) *LaterTicker {
 
 	later.stoppers = append(tailorStopped(later.stoppers), ticker)
 	return ticker
+}
+
+func (later *laterImpl) NewTimer(d time.Duration) *LaterTimer {
+	var timer = &LaterTimer{
+		Timer:       time.NewTimer(d),
+		stoppedTime: time.Now().Add(d),
+	}
+
+	later.stoppers = append(tailorStopped(later.stoppers), timer)
+	return timer
 }
 
 func tailorStopped(data []stopper) []stopper {
@@ -72,6 +83,8 @@ func Go(handler func(later Later)) {
 	go func() {
 		defer DumpIfPanic()
 
+		// 这个可能不需要初始化stoppers切片，原因是大部分情况下并没有使用Ticker或Timer的需求
+		//var later = &laterImpl{stoppers: make([]stopper, 0, 4)}
 		var later = &laterImpl{}
 		defer later.stop()
 
