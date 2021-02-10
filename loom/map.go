@@ -2,7 +2,6 @@ package loom
 
 import (
 	"fmt"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"unsafe"
@@ -31,11 +30,9 @@ todo 减少默认sharding数？同时增加一个只允许调用一次SetShardin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-var shardCount = fetchShardCount()
-var shardCountMinus1 = shardCount - 1
-
 // 用于记录快照数据的共享池
 var snapshotPool = newPool(8)
+var mapSharding = NewSharding()
 
 type ShardTable map[interface{}]interface{}
 
@@ -221,7 +218,7 @@ func (my *Map) getShard(key interface{}) (*shardItem, interface{}) {
 		pData = my.getShardSlow()
 	}
 
-	var index, normalizedKey = getShardIndex(key)
+	var index, normalizedKey = mapSharding.GetShardingIndex(key)
 	var shard = (*pData)[index]
 	return shard, normalizedKey
 }
@@ -230,8 +227,9 @@ func (my *Map) getShard(key interface{}) (*shardItem, interface{}) {
 func (my *Map) getShardSlow() *[]*shardItem {
 	my.m.Lock()
 	if my.data == nil {
-		var slice = make([]*shardItem, shardCount)
-		for i := 0; i < shardCount; i++ {
+		var shardingCount = mapSharding.GetShardingCount()
+		var slice = make([]*shardItem, shardingCount)
+		for i := 0; i < shardingCount; i++ {
 			var item = &shardItem{items: make(ShardTable, 4)}
 			slice[i] = item
 		}
@@ -241,67 +239,4 @@ func (my *Map) getShardSlow() *[]*shardItem {
 	var pData = my.data
 	my.m.Unlock()
 	return pData
-}
-
-func fnv32(key string) uint32 {
-	hash := uint32(2166136261)
-	const prime32 = uint32(16777619)
-	for i := 0; i < len(key); i++ {
-		hash *= prime32
-		hash ^= uint32(key[i])
-	}
-	return hash
-}
-
-func getShardIndex(key interface{}) (index int, normalizedKey interface{}) {
-	var next int64
-	switch key := key.(type) {
-	case int:
-		next = int64(key)
-	case int8:
-		next = int64(key)
-	case int16:
-		next = int64(key)
-	case int32:
-		next = int64(key)
-	case int64:
-		next = key
-	case uint8:
-		next = int64(key)
-	case uint16:
-		next = int64(key)
-	case uint32:
-		next = int64(key)
-	case uint64:
-		next = int64(key)
-	case string:
-		next = int64(fnv32(key))
-		index = int(next) & shardCountMinus1
-		normalizedKey = key
-		return
-	default:
-		var message = fmt.Sprintf("Not supported key type, key= %v", key)
-		panic(message)
-	}
-
-	index = int(next) & shardCountMinus1
-	normalizedKey = next
-	return
-}
-
-// 由于getShardIndex()算法需要，这个shardCount必须是 2 的指数倍
-func fetchShardCount() int {
-	var numCpu = runtime.NumCPU() << 1
-	var result = 2
-	for result < numCpu {
-		result <<= 1
-	}
-
-	// 有些cpu可能是64核的，创建太多的shard数可能没有太大的意义
-	const maxShardCount = 32
-	if result > maxShardCount {
-		result = maxShardCount
-	}
-
-	return result
 }
