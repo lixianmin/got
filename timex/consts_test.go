@@ -1,16 +1,18 @@
 package timex
 
-import "time"
+import (
+	"testing"
+	"time"
+)
 
 /********************************************************************
-created:    2021-01-05
+created:    2021-03-04
 author:     lixianmin
 
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-const (
-	Layout = "2006-01-02T15:04:05"
-	Day    = 24 * time.Hour
-	Week   = 7 * Day
-)
+func TestLayout(t *testing.T) {
+	var s = time.Now().Format(Layout)
+	println(s)
+}
