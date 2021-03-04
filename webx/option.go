@@ -2,7 +2,6 @@ package webx
 
 import (
 	"net/http"
-	"net/url"
 	"time"
 )
 
@@ -13,18 +12,19 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
+type RequestBuilderFunc func(request *http.Request) string
 type options struct {
-	RequestBuilder func(request *http.Request) url.Values // 配置request
-	Timeout        time.Duration                          // 控制从链接建立到返回的整个生命周期的时间
+	RequestBuilder RequestBuilderFunc // 配置request
+	Timeout        time.Duration      // 控制从链接建立到返回的整个生命周期的时间
 }
 
 type Option func(*options)
 
-func emptyRequestBuilder(request *http.Request) url.Values {
-	return nil
+func emptyRequestBuilder(request *http.Request) string {
+	return ""
 }
 
-func WithRequestBuilder(builder func(request *http.Request) url.Values) Option {
+func WithRequestBuilder(builder RequestBuilderFunc) Option {
 	return func(opts *options) {
 		if builder != nil {
 			opts.RequestBuilder = builder

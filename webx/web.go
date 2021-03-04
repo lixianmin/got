@@ -40,12 +40,12 @@ func Request(ctx context.Context, method string, url string, options ...Option) 
 
 	// 重新配置request
 	var values = opts.RequestBuilder(request)
-	if values != nil {
+	if values != "" {
 		switch method {
 		case "GET":
-			request.URL.RawQuery = values.Encode()
+			request.URL.RawQuery = values
 		case "POST":
-			request.Body = ioutil.NopCloser(strings.NewReader(values.Encode()))
+			request.Body = ioutil.NopCloser(strings.NewReader(values))
 		}
 	}
 
