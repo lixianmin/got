@@ -15,9 +15,9 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-var dumpHandler func()
+var dumpHandler func(data []byte)
 
-func Initialize(dumpCallback func()) {
+func Initialize(dumpCallback func(data []byte)) {
 	dumpHandler = dumpCallback
 }
 
@@ -58,7 +58,7 @@ func DumpIfPanic() {
 	// 输出
 	_, _ = f.Write(data)
 	if nil != dumpHandler {
-		dumpHandler()
+		dumpHandler(data)
 	}
 
 	// 直接退出？
