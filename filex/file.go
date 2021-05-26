@@ -43,8 +43,7 @@ func ForEachLine(fin io.Reader, handler func(line string) bool) error {
 		}
 
 		var line = string(buffer[:len(buffer)-1])
-		var ok = handler(line)
-		if !ok {
+		if ok := handler(line); !ok { // 只要handler()返回false，就中止
 			return nil
 		}
 	}
