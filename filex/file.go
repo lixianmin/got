@@ -2,6 +2,7 @@ package filex
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 )
@@ -20,6 +21,14 @@ func ReadLines(path string, handler func(line string) bool) error {
 	}
 
 	defer fin.Close()
+
+	return ForEachLine(fin, handler)
+}
+
+func ForEachLine(fin io.Reader, handler func(line string) bool) error {
+	if handler == nil {
+		return fmt.Errorf("handler is nil")
+	}
 
 	var reader = bufio.NewReader(fin)
 	for {
