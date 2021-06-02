@@ -35,8 +35,8 @@ func NewQueue() *Queue {
 	return &Queue{head: n, tail: n}
 }
 
-// Enqueue puts the given value v at the tail of the queue.
-func (q *Queue) Enqueue(v interface{}) {
+// Push puts the given value v at the tail of the queue.
+func (q *Queue) Push(v interface{}) {
 	n := &node{value: v}
 	for {
 		tail := queueLoad(&q.tail)
@@ -44,7 +44,7 @@ func (q *Queue) Enqueue(v interface{}) {
 		if tail == queueLoad(&q.tail) { // are tail and next consistent?
 			if next == nil {
 				if queueCas(&tail.next, next, n) {
-					queueCas(&q.tail, tail, n) // Enqueue is done.  try to swing tail to the inserted node
+					queueCas(&q.tail, tail, n) // Push is done.  try to swing tail to the inserted node
 					return
 				}
 			} else { // tail was not pointing to the last node
@@ -55,9 +55,9 @@ func (q *Queue) Enqueue(v interface{}) {
 	}
 }
 
-// Dequeue removes and returns the value at the head of the queue.
+// Pop removes and returns the value at the head of the queue.
 // It returns nil if the queue is empty.
-func (q *Queue) Dequeue() interface{} {
+func (q *Queue) Pop() interface{} {
 	for {
 		head := queueLoad(&q.head)
 		tail := queueLoad(&q.tail)
@@ -74,7 +74,7 @@ func (q *Queue) Dequeue() interface{} {
 				// read value before CAS otherwise another dequeue might free the next node
 				v := next.value
 				if queueCas(&q.head, head, next) {
-					return v // Dequeue is done.  return
+					return v // Pop is done.  return
 				}
 			}
 		}
