@@ -1,5 +1,12 @@
 package loom
 
+/********************************************************************
+created:    2021-06-02
+author:     lixianmin
+
+Copyright (C) - All Rights Reserved
+*********************************************************************/
+
 type options struct {
 	Size      int
 	CloseChan chan struct{}
