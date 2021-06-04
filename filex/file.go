@@ -25,6 +25,7 @@ func ReadLines(path string, handler func(line string) bool) error {
 	return ForEachLine(fin, handler)
 }
 
+// ForEachLine 有些文件格式非常特殊，可能会把内存撑爆，这时可以考虑传入io.LimitReader(r, limit)，限制读入的最大字节数
 func ForEachLine(fin io.Reader, handler func(line string) bool) error {
 	if handler == nil {
 		return fmt.Errorf("handler is nil")
