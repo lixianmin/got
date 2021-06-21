@@ -45,7 +45,7 @@ func TestWaitClose_Chan(t *testing.T) {
 
 	go func() {
 		time.Sleep(2 * time.Second)
-		wc.Close(nil)
+		_ = wc.Close(nil)
 	}()
 
 	<-wc.C()

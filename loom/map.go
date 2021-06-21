@@ -47,7 +47,7 @@ type Map struct {
 	size int64
 }
 
-// 如果已经存在了相同key的value，则覆盖找返回以前存在的那一个值；否则返回nil
+// Put 如果已经存在了相同key的value，则覆盖找返回以前存在的那一个值；否则返回nil
 func (my *Map) Put(key interface{}, value interface{}) interface{} {
 	var shard, normalizedKey = my.getShard(key)
 	var last interface{}
@@ -66,7 +66,7 @@ func (my *Map) Put(key interface{}, value interface{}) interface{} {
 	return last
 }
 
-// 如果存在，则删除，并返回该值
+// Remove 如果存在，则删除，并返回该值
 func (my *Map) Remove(key interface{}) interface{} {
 	var shard, normalizedKey = my.getShard(key)
 	var last interface{}
@@ -83,7 +83,7 @@ func (my *Map) Remove(key interface{}) interface{} {
 	return last
 }
 
-// 如果map中存在，则返回；否则返回nil
+// Get1 如果map中存在，则返回；否则返回nil
 func (my *Map) Get1(key interface{}) interface{} {
 	var shard, normalizedKey = my.getShard(key)
 	var last, _ = my.getInner(shard, normalizedKey)
@@ -106,7 +106,7 @@ func (my *Map) getInner(shard *shardItem, key interface{}) (interface{}, bool) {
 	return last, has
 }
 
-// 这其实是一种get命令：如果key对应的value已经存在，则返回存在的value，不进行替换；如果不存在，就添加key和value，然后返回nil
+// PutIfAbsent 这其实是一种get命令：如果key对应的value已经存在，则返回存在的value，不进行替换；如果不存在，就添加key和value，然后返回nil
 func (my *Map) PutIfAbsent(key interface{}, value interface{}) interface{} {
 	var shard, normalizedKey = my.getShard(key)
 	var last, has = my.getInner(shard, normalizedKey)
@@ -126,7 +126,7 @@ func (my *Map) PutIfAbsent(key interface{}, value interface{}) interface{} {
 	return last
 }
 
-// 如果原来存在，则返回原来的值；否则使用creator创建一个新值，放到到map中，则返回它
+// ComputeIfAbsent 如果原来存在，则返回原来的值；否则使用creator创建一个新值，放到到map中，则返回它
 func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) interface{}) interface{} {
 	var shard, normalizedKey = my.getShard(key)
 	var last, has = my.getInner(shard, normalizedKey)
@@ -160,7 +160,7 @@ func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) in
 //	handler(shard.items)
 //}
 
-// 使用数据快照支持遍历过程，因为无法保证遍历过程中回调方法不调用Add, Remove等方法，必须得避免死锁
+// Range 使用数据快照支持遍历过程，因为无法保证遍历过程中回调方法不调用Add, Remove等方法，必须得避免死锁
 func (my *Map) Range(handler func(key interface{}, value interface{})) {
 	if handler == nil {
 		return

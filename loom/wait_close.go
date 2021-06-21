@@ -58,8 +58,8 @@ func (wc *WaitClose) WaitUtil(timeout time.Duration) bool {
 	}
 }
 
-// 2020-10-01
-// 如果callback!=nil，则只要state != closed，就应该执行一下callback()
+// Close 返回的时候，确保callback()方法已经执行完成
+// 2020-10-01：如果callback!=nil，则只要state != closed，就应该执行一下callback()
 func (wc *WaitClose) Close(callback func() error) error {
 	if wcClosed != atomic.LoadInt32(&wc.state) {
 		wc.mutex.Lock()
@@ -80,7 +80,8 @@ func (wc *WaitClose) Close(callback func() error) error {
 			}
 
 			// 即使未初始化的，也直接关闭掉
-			atomic.StoreInt32(&wc.state, wcClosed)
+			// 2021-06-21 使用defer是为了确保Close()方法返回的时候，callback()方法必然已经执行完成
+			defer atomic.StoreInt32(&wc.state, wcClosed)
 			if callback != nil {
 				return callback()
 			}
