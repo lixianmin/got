@@ -13,15 +13,15 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type CacheItem struct {
+type CacheFuture struct {
 	value      interface{}
 	updateTime atomic.Value
 	wg         sync.WaitGroup
 	firstWait  sync.Once
 }
 
-func newCacheItem() *CacheItem {
-	var item = &CacheItem{}
+func newCacheFuture() *CacheFuture {
+	var item = &CacheFuture{}
 
 	const year = 365 * 24 * time.Hour
 	item.updateTime.Store(time.Now().Add(-year))
@@ -29,12 +29,12 @@ func newCacheItem() *CacheItem {
 	return item
 }
 
-func (my *CacheItem) Get() interface{} {
+func (my *CacheFuture) Get() interface{} {
 	my.wg.Wait()
 	return my.value
 }
 
-func (my *CacheItem) setValue(value interface{}) {
+func (my *CacheFuture) setValue(value interface{}) {
 	my.value = value
 	my.updateTime.Store(time.Now())
 	my.firstWait.Do(func() {
@@ -42,6 +42,6 @@ func (my *CacheItem) setValue(value interface{}) {
 	})
 }
 
-func (my *CacheItem) getUpdateTime() time.Time {
+func (my *CacheFuture) getUpdateTime() time.Time {
 	return my.updateTime.Load().(time.Time)
 }
