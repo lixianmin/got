@@ -19,6 +19,7 @@ type loadJob struct {
 }
 
 type Cache struct {
+	expire      time.Duration
 	lockFutures sync.Mutex
 	futures     map[interface{}]*CacheFuture
 	lockJob     sync.Mutex
@@ -29,6 +30,7 @@ type Cache struct {
 func NewCache(opts ...CacheOption) *Cache {
 	var args = createCacheArguments(opts)
 	var my = &Cache{
+		expire:  args.expire,
 		futures: make(map[interface{}]*CacheFuture, 8),
 		jobChan: make(chan loadJob, 1),
 	}
@@ -64,12 +66,12 @@ func (my *Cache) startGoroutines(parallel int) {
 // 3. 如果并发请求Load()方法，不会重复创建，会返回同一个Future对象
 // 4. 超过2*expire的时间，则会移除超时的Future对象
 // 5. 被移除的Future对象，如果已经被三方拿到了，可以正常调用Get()方法，如果内部正在加载，会正常加载完成
-func (my *Cache) Load(key interface{}, expire time.Duration, loader func(key interface{}) interface{}) *CacheFuture {
+func (my *Cache) Load(key interface{}, loader func(key interface{}) interface{}) *CacheFuture {
 	assert(key != nil, "key is nil")
 	assert(loader != nil, "loader is nil")
 
-	var future = my.fetchFuture(key, expire)
-	var needUpdate = time.Now().Sub(future.getUpdateTime()) > expire
+	var future = my.fetchFuture(key)
+	var needUpdate = time.Now().Sub(future.getUpdateTime()) > my.expire
 	if needUpdate {
 		my.checkStartLoad(future, key, loader)
 	}
@@ -77,15 +79,14 @@ func (my *Cache) Load(key interface{}, expire time.Duration, loader func(key int
 	return future
 }
 
-func (my *Cache) fetchFuture(key interface{}, expire time.Duration) *CacheFuture {
+func (my *Cache) fetchFuture(key interface{}) *CacheFuture {
 	var future *CacheFuture
 	my.lockFutures.Lock()
 	{
 		future = my.futures[key]
 		// 如果future已经过期，则直接使用新的替换。否则如果返回旧future，用户可能Get()到过期的数据
-		if future == nil || future.isExpired(2*expire) {
+		if future == nil || my.shouldRemove(future) {
 			future = newCacheFuture()
-			future.setExpireDuration(expire)
 			my.futures[key] = future
 		}
 	}
@@ -117,10 +118,15 @@ func (my *Cache) removeExpired() {
 	my.lockFutures.Lock()
 	{
 		for key, future := range my.futures {
-			if future.isExpired(future.getExpireDuration()) {
+			if my.shouldRemove(future) {
 				delete(my.futures, key)
 			}
 		}
 	}
 	my.lockFutures.Unlock()
+}
+
+func (my *Cache) shouldRemove(future *CacheFuture) bool {
+	var updateTime = future.getUpdateTime()
+	return updateTime != time.Time{} && time.Now().Sub(updateTime) > 2*my.expire
 }

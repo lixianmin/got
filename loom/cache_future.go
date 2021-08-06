@@ -15,7 +15,6 @@ Copyright (C) - All Rights Reserved
 
 type CacheFuture struct {
 	value          interface{}
-	expireDuration int64
 	updateTime     atomic.Value
 	wg             sync.WaitGroup
 	firstWait      sync.Once
@@ -44,19 +43,6 @@ func (my *CacheFuture) setValue(value interface{}) {
 
 func (my *CacheFuture) getUpdateTime() time.Time {
 	return my.updateTime.Load().(time.Time)
-}
-
-func (my *CacheFuture) setExpireDuration(expire time.Duration) {
-	atomic.StoreInt64(&my.expireDuration, int64(expire))
-}
-
-func (my *CacheFuture) getExpireDuration() time.Duration {
-	return time.Duration(atomic.LoadInt64(&my.expireDuration))
-}
-
-func (my *CacheFuture) isExpired(expire time.Duration) bool {
-	var updateTime = my.getUpdateTime()
-	return updateTime != time.Time{} && time.Now().Sub(updateTime) > expire
 }
 
 func (my *CacheFuture) setLoading(b bool) {
