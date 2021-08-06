@@ -52,5 +52,6 @@ func TestCache_Load(t *testing.T) {
 	}
 
 	fmt.Printf("f1=%d, f2=%d, f3=%d, f4=%d, f5=%d\n", f1.Get(), f2.Get(), f3.Get(), f4.Get(), f5.Get())
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Minute)
+	time.Sleep(time.Minute)
 }
