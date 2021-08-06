@@ -21,6 +21,7 @@ type jobData struct {
 type Cache struct {
 	lockFutures sync.Mutex
 	futures     map[interface{}]*CacheFuture
+	lockJob     sync.Mutex
 	jobChan     chan jobData
 	wc          WaitClose
 }
@@ -33,6 +34,7 @@ func NewCache(opts ...CacheOption) *Cache {
 	}
 
 	my.startGoroutines(args.parallel)
+	Repeat(time.Minute, my.removeExpired)
 	return my
 }
 
@@ -47,6 +49,7 @@ func (my *Cache) startGoroutines(parallel int) {
 				case job := <-jobChan:
 					var value = job.loader(job.key)
 					job.future.setValue(value)
+					job.future.setLoading(false)
 				case <-my.wc.C():
 					break
 				}
@@ -66,25 +69,33 @@ func (my *Cache) Load(key interface{}, expire time.Duration, loader func(key int
 	assert(loader != nil, "loader is nil")
 
 	var future *CacheFuture
-	var now = time.Now()
 	my.lockFutures.Lock()
 	{
 		future = my.futures[key]
 		// 如果future已经过期，则直接使用新的替换。否则如果返回旧future，用户可能Get()到过期的数据
-		if future == nil || now.Sub(future.getUpdateTime()) >= 2*expire {
+		if future == nil || future.isExpired(2*expire) {
 			future = newCacheFuture()
+			future.setExpireDuration(expire)
 			my.futures[key] = future
 		}
 	}
 	my.lockFutures.Unlock()
 
-	var pastTime = now.Sub(future.getUpdateTime())
-	if pastTime >= expire {
-		my.jobChan <- jobData{
-			loader: loader,
-			key:    key,
-			future: future,
+	var now = time.Now()
+	var needUpdate = now.Sub(future.getUpdateTime()) > expire
+	if needUpdate {
+		my.lockJob.Lock()
+		{
+			if !future.isLoading() {
+				future.setLoading(true)
+				my.jobChan <- jobData{
+					loader: loader,
+					key:    key,
+					future: future,
+				}
+			}
 		}
+		my.lockJob.Unlock()
 	}
 
 	return future
@@ -92,4 +103,16 @@ func (my *Cache) Load(key interface{}, expire time.Duration, loader func(key int
 
 func (my *Cache) Close() error {
 	return my.wc.Close(nil)
+}
+
+func (my *Cache) removeExpired() {
+	my.lockFutures.Lock()
+	{
+		for key, future := range my.futures {
+			if future.isExpired(future.getExpireDuration()) {
+				delete(my.futures, key)
+			}
+		}
+	}
+	my.lockFutures.Unlock()
 }
