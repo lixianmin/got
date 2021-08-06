@@ -12,7 +12,7 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type jobData struct {
+type loadJob struct {
 	loader func(key interface{}) interface{}
 	key    interface{}
 	future *CacheFuture
@@ -22,7 +22,7 @@ type Cache struct {
 	lockFutures sync.Mutex
 	futures     map[interface{}]*CacheFuture
 	lockJob     sync.Mutex
-	jobChan     chan jobData
+	jobChan     chan loadJob
 	wc          WaitClose
 }
 
@@ -30,7 +30,7 @@ func NewCache(opts ...CacheOption) *Cache {
 	var args = createCacheArguments(opts)
 	var my = &Cache{
 		futures: make(map[interface{}]*CacheFuture, 8),
-		jobChan: make(chan jobData, 1),
+		jobChan: make(chan loadJob, 1),
 	}
 
 	my.startGoroutines(args.parallel)
@@ -68,6 +68,16 @@ func (my *Cache) Load(key interface{}, expire time.Duration, loader func(key int
 	assert(key != nil, "key is nil")
 	assert(loader != nil, "loader is nil")
 
+	var future = my.fetchFuture(key, expire)
+	var needUpdate = time.Now().Sub(future.getUpdateTime()) > expire
+	if needUpdate {
+		my.checkStartLoad(future, key, loader)
+	}
+
+	return future
+}
+
+func (my *Cache) fetchFuture(key interface{}, expire time.Duration) *CacheFuture {
 	var future *CacheFuture
 	my.lockFutures.Lock()
 	{
@@ -81,24 +91,22 @@ func (my *Cache) Load(key interface{}, expire time.Duration, loader func(key int
 	}
 	my.lockFutures.Unlock()
 
-	var now = time.Now()
-	var needUpdate = now.Sub(future.getUpdateTime()) > expire
-	if needUpdate {
-		my.lockJob.Lock()
-		{
-			if !future.isLoading() {
-				future.setLoading(true)
-				my.jobChan <- jobData{
-					loader: loader,
-					key:    key,
-					future: future,
-				}
+	return future
+}
+
+func (my *Cache) checkStartLoad(future *CacheFuture, key interface{}, loader func(key interface{}) interface{}) {
+	my.lockJob.Lock()
+	{
+		if !future.isLoading() {
+			future.setLoading(true)
+			my.jobChan <- loadJob{
+				loader: loader,
+				key:    key,
+				future: future,
 			}
 		}
-		my.lockJob.Unlock()
 	}
-
-	return future
+	my.lockJob.Unlock()
 }
 
 func (my *Cache) Close() error {
