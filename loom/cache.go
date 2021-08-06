@@ -71,9 +71,9 @@ func (my *Cache) Load(key interface{}, loader func(key interface{}) interface{})
 	assert(loader != nil, "loader is nil")
 
 	var future = my.fetchFuture(key)
-	var needUpdate = time.Now().Sub(future.getUpdateTime()) > my.expire
-	if needUpdate {
-		my.checkStartLoad(future, key, loader)
+	var mayNeedLoad = time.Now().Sub(future.getUpdateTime()) > my.expire
+	if mayNeedLoad {
+		my.checkLoad(future, key, loader)
 	}
 
 	return future
@@ -95,7 +95,7 @@ func (my *Cache) fetchFuture(key interface{}) *CacheFuture {
 	return future
 }
 
-func (my *Cache) checkStartLoad(future *CacheFuture, key interface{}, loader func(key interface{}) interface{}) {
+func (my *Cache) checkLoad(future *CacheFuture, key interface{}, loader func(key interface{}) interface{}) {
 	my.lockJob.Lock()
 	{
 		if !future.isLoading() {
