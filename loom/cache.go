@@ -36,7 +36,7 @@ func NewCache(opts ...CacheOption) *Cache {
 	}
 
 	my.startGoroutines(args.parallel)
-	Repeat(time.Minute, my.removeExpired)
+	Repeat(args.gcInterval, my.removeExpired)
 	return my
 }
 
