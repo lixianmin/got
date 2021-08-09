@@ -77,7 +77,7 @@ func TestCache_LoadMultiTimes(t *testing.T) {
 	time.Sleep(4 * time.Second)
 
 	for i := 0; i < 10; i++ {
-		cache.Load(1, func(key interface{}) interface{} {
+		go cache.Load(1, func(key interface{}) interface{} {
 			time.Sleep(time.Second)
 			fmt.Println(3)
 			return 3
