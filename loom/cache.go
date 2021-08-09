@@ -96,18 +96,22 @@ func (my *Cache) fetchFuture(key interface{}) *CacheFuture {
 }
 
 func (my *Cache) checkLoad(future *CacheFuture, key interface{}, loader func(key interface{}) interface{}) {
-	my.lockJob.Lock()
-	{
-		if !future.isLoading() {
-			future.setLoading(true)
-			my.jobChan <- loadJob{
-				loader: loader,
-				key:    key,
-				future: future,
+	// fast path
+	if !future.isLoading() {
+		// slow path
+		my.lockJob.Lock()
+		{
+			if !future.isLoading() {
+				future.setLoading(true)
+				my.jobChan <- loadJob{
+					loader: loader,
+					key:    key,
+					future: future,
+				}
 			}
 		}
+		my.lockJob.Unlock()
 	}
-	my.lockJob.Unlock()
 }
 
 func (my *Cache) Close() error {
