@@ -31,10 +31,10 @@ func createCacheArguments(options []CacheOption) cacheArguments {
 	return args
 }
 
-func WithParallel(count int) CacheOption {
+func WithParallel(num int) CacheOption {
 	return func(args *cacheArguments) {
-		if count > 0 {
-			args.parallel = count
+		if num > 0 {
+			args.parallel = num
 		}
 	}
 }
