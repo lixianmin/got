@@ -14,11 +14,12 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type CacheFuture struct {
-	value          interface{}
-	updateTime     atomic.Value
-	wg             sync.WaitGroup
-	firstWait      sync.Once
-	loading        int32
+	value      interface{}
+	err        error
+	updateTime atomic.Value
+	wg         sync.WaitGroup
+	firstWait  sync.Once
+	loading    int32
 }
 
 func newCacheFuture() *CacheFuture {
@@ -28,13 +29,20 @@ func newCacheFuture() *CacheFuture {
 	return item
 }
 
-func (my *CacheFuture) Get() interface{} {
+func (my *CacheFuture) Get1() interface{} {
 	my.wg.Wait()
 	return my.value
 }
 
-func (my *CacheFuture) setValue(value interface{}) {
+func (my *CacheFuture) Get2() (interface{}, error) {
+	my.wg.Wait()
+	return my.value, my.err
+}
+
+func (my *CacheFuture) setValue(value interface{}, err error) {
 	my.value = value
+	my.err = err
+
 	my.updateTime.Store(time.Now())
 	my.firstWait.Do(func() {
 		my.wg.Done()

@@ -12,8 +12,10 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
+type CacheLoader = func(key interface{}) (interface{}, error)
+
 type loadJob struct {
-	loader func(key interface{}) interface{}
+	loader CacheLoader
 	key    interface{}
 	future *CacheFuture
 }
@@ -49,8 +51,8 @@ func (my *Cache) startGoroutines(parallel int) {
 			for {
 				select {
 				case job := <-jobChan:
-					var value = job.loader(job.key)
-					job.future.setValue(value)
+					var value, err = job.loader(job.key)
+					job.future.setValue(value, err)
 					job.future.setLoading(false)
 				case <-my.wc.C():
 					break
@@ -66,7 +68,7 @@ func (my *Cache) startGoroutines(parallel int) {
 // 3. 如果并发请求Load()方法，不会重复创建，会返回同一个Future对象
 // 4. 超过2*expire的时间，称之为rotted，会直接移除Future对象
 // 5. 被移除的Future对象，如果已经被三方拿到了，可以正常调用Get()方法，如果内部正在加载，会正常加载完成
-func (my *Cache) Load(key interface{}, loader func(key interface{}) interface{}) *CacheFuture {
+func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 	assert(key != nil, "key is nil")
 	assert(loader != nil, "loader is nil")
 
@@ -95,7 +97,7 @@ func (my *Cache) fetchFuture(key interface{}) *CacheFuture {
 	return future
 }
 
-func (my *Cache) checkLoad(future *CacheFuture, key interface{}, loader func(key interface{}) interface{}) {
+func (my *Cache) checkLoad(future *CacheFuture, key interface{}, loader CacheLoader) {
 	// fast path
 	if !future.isLoading() {
 		// slow path
