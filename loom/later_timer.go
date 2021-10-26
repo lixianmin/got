@@ -25,7 +25,7 @@ func (my *LaterTimer) IsStopped() bool {
 	return !time.Now().Before(my.stoppedTime)
 }
 
-// 这个方法用于支持随机时间区间的的Ticker()
+// Reset 这个方法用于支持随机时间区间的的Ticker()
 // timer.Reset(timex.Duration(from, to))
 func (my *LaterTimer) Reset(d time.Duration) bool {
 	var b = my.Timer.Reset(d)

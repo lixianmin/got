@@ -169,6 +169,32 @@ func TestMap_Range(t *testing.T) {
 	}
 }
 
+func TestMap_RangeDataRace(t *testing.T) {
+	var m Map
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		for i := 0; i < 1000; i++ {
+			m.Put(i, i)
+		}
+
+		wg.Done()
+	}()
+
+	go func() {
+		for i := 0; i < 10; i++ {
+			m.Range(func(key interface{}, value interface{}) {
+
+			})
+		}
+		wg.Done()
+	}()
+
+	wg.Wait()
+}
+
 //func TestMap_WithLock(t *testing.T) {
 //	var m Map
 //	m.Put(1, 1)

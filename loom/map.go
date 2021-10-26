@@ -42,7 +42,7 @@ type shardItem struct {
 }
 
 type Map struct {
-	m    sync.Mutex
+	lock sync.Mutex
 	data *[]*shardItem
 	size int64
 }
@@ -166,7 +166,7 @@ func (my *Map) Range(handler func(key interface{}, value interface{})) {
 		return
 	}
 
-	var pData = (*[]*shardItem)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&my.data))))
+	var pData = my.getShardData()
 	if pData != nil {
 		var list = snapshotPool.Get()
 		var data = *pData
@@ -213,20 +213,26 @@ func (my *Map) addSize(delta int64) {
 }
 
 func (my *Map) getShard(key interface{}) (*shardItem, interface{}) {
-	var pData = (*[]*shardItem)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&my.data))))
-	if pData == nil {
-		pData = my.getShardSlow()
-	}
-
+	var pData = my.getShardData()
 	var index, normalizedKey = mapSharding.GetShardingIndex(key)
 	var shard = (*pData)[index]
 	return shard, normalizedKey
 }
 
+func (my *Map) getShardData() *[]*shardItem {
+	var pData = (*[]*shardItem)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&my.data))))
+	if pData == nil {
+		pData = my.getDataSlow()
+	}
+
+	return pData
+}
+
 // 将slow方法提取出来，减小主方法体的大小，提高主方法体inline的可能性
-func (my *Map) getShardSlow() *[]*shardItem {
-	my.m.Lock()
-	if my.data == nil {
+func (my *Map) getDataSlow() *[]*shardItem {
+	my.lock.Lock()
+	var pData = my.data
+	if pData == nil {
 		var shardingCount = mapSharding.GetShardingCount()
 		var slice = make([]*shardItem, shardingCount)
 		for i := 0; i < shardingCount; i++ {
@@ -234,9 +240,9 @@ func (my *Map) getShardSlow() *[]*shardItem {
 			slice[i] = item
 		}
 
-		my.data = &slice
+		pData = &slice
+		atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&my.data)), unsafe.Pointer(pData))
 	}
-	var pData = my.data
-	my.m.Unlock()
+	my.lock.Unlock()
 	return pData
 }
