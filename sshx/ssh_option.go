@@ -11,7 +11,6 @@ const defaultPrefix = "ssh."
 
 type sshOptions struct {
 	prefix string // script的前缀
-	debug  bool   // 是否是debug模式
 }
 
 type SSHOption func(*sshOptions)
@@ -21,11 +20,5 @@ func WithPrefix(prefix string) SSHOption {
 		if prefix != "" {
 			options.prefix = prefix
 		}
-	}
-}
-
-func WithDebug() SSHOption {
-	return func(options *sshOptions) {
-		options.debug = true
 	}
 }

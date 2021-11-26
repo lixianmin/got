@@ -1,9 +1,11 @@
 package sshx
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"github.com/lixianmin/got/convert"
-	"math/rand"
+	"github.com/lixianmin/got/filex"
 	"os"
 	"os/exec"
 )
@@ -18,6 +20,7 @@ Copyright (C) - All Rights Reserved
 type SSH struct {
 	hostname string
 	script   string
+	sha256   string
 	options  sshOptions
 }
 
@@ -34,7 +37,6 @@ func NewSSH(hostname, script string, opts ...SSHOption) *SSH {
 	// 默认值
 	var options = sshOptions{
 		prefix: defaultPrefix,
-		debug:  false,
 	}
 
 	// 初始化
@@ -45,65 +47,55 @@ func NewSSH(hostname, script string, opts ...SSHOption) *SSH {
 	var my = &SSH{
 		hostname: hostname,
 		script:   script,
+		sha256:   sumSHA256(script),
 		options:  options,
 	}
 
 	return my
 }
 
-func (my *SSH) Run() ([]byte, error) {
-	var scriptName, err = writeScript(my.script, my.options.prefix)
-	if err != nil {
-		return nil, err
-	}
-
-	var isDebug = my.options.debug
-	defer func() {
-		if !isDebug {
-			_ = os.Remove(scriptName)
+func (my *SSH) Run(args ...string) ([]byte, error) {
+	var scriptName = my.options.prefix + my.sha256 + ".sh"
+	// 这个方案有点redis的evalsha
+	var output, err = my.runScript(scriptName, args...)
+	if err != nil { // 主要的目的是『如果没有则创建』
+		err = filex.WriteAllText(scriptName, my.script)
+		if err != nil {
+			return nil, err
 		}
-	}()
 
-	// 复制脚本文件到远程主机
-	output, err := exec.Command("scp", scriptName, my.hostname+":/tmp").CombinedOutput()
-	if err != nil {
-		return nil, err
-	}
+		// remove本地的脚本文件
+		defer os.Remove(scriptName)
 
-	// -tt 可避免 Pseudo-terminal will not be allocated because stdin is not a terminal
-	// -o StrictHostKeyChecking=no  可避免 The authenticity of host 'xxx' can't be established. RSA key fingerprint is xxx. Are you sure you want to continue connecting (yes/no)
-	var destFileName = "/tmp/" + scriptName
-	var cmd = exec.Command("ssh", my.hostname, "-tt", "-o", "StrictHostKeyChecking=no", "/bin/bash", destFileName)
-	output, err = cmd.CombinedOutput()
+		// scp脚本文件到远程主机
+		output, err = exec.Command("scp", scriptName, my.hostname+":/tmp").CombinedOutput()
+		if err != nil {
+			return nil, err
+		}
 
-	// 删除目标机器上的临时文件
-	// 这个最初试过在script中写入 rm self.xxx.sh的命令，后来发现有可能删除不掉 (也许是因为脚本执行出错了？)
-	if !isDebug {
-		_, _ = exec.Command("ssh", my.hostname, "-tt", "-o", "StrictHostKeyChecking=no", "/bin/rm", destFileName).CombinedOutput()
+		output, err = my.runScript(scriptName, args...)
 	}
 
 	return output, err
 }
 
+func (my *SSH) runScript(scriptName string, args ...string) ([]byte, error) {
+	var remotePath = "/tmp/" + scriptName
+
+	// -tt 可避免 Pseudo-terminal will not be allocated because stdin is not a terminal
+	// -o StrictHostKeyChecking=no  可避免 The authenticity of host 'xxx' can't be established. RSA key fingerprint is xxx. Are you sure you want to continue connecting (yes/no)
+	var list = append([]string{my.hostname, "-tt", "-o", "StrictHostKeyChecking=no", "/bin/bash", remotePath}, args...)
+	var cmd = exec.Command("ssh", list...)
+	var output, err = cmd.CombinedOutput()
+	return output, err
+}
+
 func (my *SSH) String() string {
-	return my.script
+	return fmt.Sprintf("hostname=%q, sha256=%q, script=%q", my.hostname, my.sha256, my.script)
 }
 
-func randomFileName(prefix, suffix string) string {
-	var randBytes = make([]byte, 16)
-	rand.Read(randBytes)
-	return prefix + hex.EncodeToString(randBytes) + suffix
-}
-
-func writeScript(script string, prefix string) (string, error) {
-	var filename = randomFileName(prefix, ".sh")
-	fout, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return filename, err
-	}
-
-	defer fout.Close()
-
-	_, err = fout.Write(convert.Bytes(script))
-	return filename, err
+func sumSHA256(input string) string {
+	var data = convert.Bytes(input)
+	var code = sha256.Sum256(data)
+	return hex.EncodeToString(code[0:])
 }
