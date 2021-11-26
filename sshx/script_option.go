@@ -9,14 +9,14 @@ Copyright (C) - All Rights Reserved
 
 const defaultPrefix = "ssh."
 
-type sshOptions struct {
+type scriptOptions struct {
 	prefix string // script的前缀
 }
 
-type SSHOption func(*sshOptions)
+type ScriptOption func(*scriptOptions)
 
-func WithPrefix(prefix string) SSHOption {
-	return func(options *sshOptions) {
+func WithPrefix(prefix string) ScriptOption {
+	return func(options *scriptOptions) {
 		if prefix != "" {
 			options.prefix = prefix
 		}

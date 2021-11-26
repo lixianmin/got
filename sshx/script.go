@@ -17,15 +17,15 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type SSH struct {
+type Script struct {
 	hostname string
 	script   string
-	sha256   string
-	options  sshOptions
+	filename string
+	options  scriptOptions
 }
 
-// NewSSH script的内容会被当作shell脚本传输到目标机
-func NewSSH(hostname, script string, opts ...SSHOption) *SSH {
+// NewScript script的内容会被当作shell脚本传输到目标机
+func NewScript(hostname, script string, opts ...ScriptOption) *Script {
 	if hostname == "" {
 		panic("hostname is empty")
 	}
@@ -35,7 +35,7 @@ func NewSSH(hostname, script string, opts ...SSHOption) *SSH {
 	}
 
 	// 默认值
-	var options = sshOptions{
+	var options = scriptOptions{
 		prefix: defaultPrefix,
 	}
 
@@ -44,43 +44,44 @@ func NewSSH(hostname, script string, opts ...SSHOption) *SSH {
 		opt(&options)
 	}
 
-	var my = &SSH{
+	var filename = options.prefix + sumSHA256(script) + ".sh"
+	var my = &Script{
 		hostname: hostname,
 		script:   script,
-		sha256:   sumSHA256(script),
+		filename: filename,
 		options:  options,
 	}
 
 	return my
 }
 
-func (my *SSH) Run(args ...string) ([]byte, error) {
-	var scriptName = my.options.prefix + my.sha256 + ".sh"
+func (my *Script) Run(args ...string) ([]byte, error) {
 	// 这个方案有点redis的evalsha
-	var output, err = my.runScript(scriptName, args...)
+	var output, err = my.runScript(args...)
 	if err != nil { // 主要的目的是『如果没有则创建』
-		err = filex.WriteAllText(scriptName, my.script)
+		var filename = my.filename
+		err = filex.WriteAllText(filename, my.script)
 		if err != nil {
 			return nil, err
 		}
 
 		// remove本地的脚本文件
-		defer os.Remove(scriptName)
+		defer os.Remove(filename)
 
 		// scp脚本文件到远程主机
-		output, err = exec.Command("scp", scriptName, my.hostname+":/tmp").CombinedOutput()
+		output, err = exec.Command("scp", filename, my.hostname+":/tmp").CombinedOutput()
 		if err != nil {
 			return nil, err
 		}
 
-		output, err = my.runScript(scriptName, args...)
+		output, err = my.runScript(args...)
 	}
 
 	return output, err
 }
 
-func (my *SSH) runScript(scriptName string, args ...string) ([]byte, error) {
-	var remotePath = "/tmp/" + scriptName
+func (my *Script) runScript(args ...string) ([]byte, error) {
+	var remotePath = "/tmp/" + my.filename
 
 	// -tt 可避免 Pseudo-terminal will not be allocated because stdin is not a terminal
 	// -o StrictHostKeyChecking=no  可避免 The authenticity of host 'xxx' can't be established. RSA key fingerprint is xxx. Are you sure you want to continue connecting (yes/no)
@@ -90,8 +91,8 @@ func (my *SSH) runScript(scriptName string, args ...string) ([]byte, error) {
 	return output, err
 }
 
-func (my *SSH) String() string {
-	return fmt.Sprintf("hostname=%q, sha256=%q, script=%q", my.hostname, my.sha256, my.script)
+func (my *Script) String() string {
+	return fmt.Sprintf("command=\"ssh %s /bin/bash /tmp/%s\", script=%q", my.hostname, my.filename, my.script)
 }
 
 func sumSHA256(input string) string {
