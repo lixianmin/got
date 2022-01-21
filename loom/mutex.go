@@ -11,7 +11,8 @@ created:    2020-10-21
 author:     lixianmin
 
 参考：
-	Go 并发编程实战课 04｜ Mutex：骇客编程，如何拓展额外功能？ https://time.geekbang.org/column/article/296793
+	Go 并发编程实战课 04｜ Mutex：骇客编程，如何拓展额外功能？
+	https://time.geekbang.org/column/article/296793
 
 Copyright (C) - All Rights Reserved
 *********************************************************************/
@@ -24,12 +25,12 @@ const (
 	mutexWaiterShift = iota      // 标识waiter的起始bit位置
 )
 
-// 扩展一个Mutex结构
+// Mutex 扩展一个Mutex结构
 type Mutex struct {
 	sync.Mutex
 }
 
-// 尝试获取锁
+// TryLock 尝试获取锁
 func (m *Mutex) TryLock() bool {
 	// fast path ：如果能成功抢到锁则直接返回
 	// 下面这一句就是直接对应着sync.Mutex中Lock()方法，一模一样翻译过来的
@@ -56,20 +57,29 @@ func (m *Mutex) Count() int {
 	return int(v)
 }
 
-// 锁是否被持有
+// IsLocked 锁是否被持有
 func (m *Mutex) IsLocked() bool {
 	state := atomic.LoadInt32((*int32)(unsafe.Pointer(&m.Mutex)))
 	return state&mutexLocked == mutexLocked
 }
 
-// 是否有等待者被唤醒
+// IsWoken 是否有等待者被唤醒
 func (m *Mutex) IsWoken() bool {
 	state := atomic.LoadInt32((*int32)(unsafe.Pointer(&m.Mutex)))
 	return state&mutexWoken == mutexWoken
 }
 
-// 锁是否处于饥饿状态
+// IsStarving 锁是否处于饥饿状态
 func (m *Mutex) IsStarving() bool {
 	state := atomic.LoadInt32((*int32)(unsafe.Pointer(&m.Mutex)))
 	return state&mutexStarving == mutexStarving
+}
+
+// WithLock 使用这个Mutex执行action
+func (m *Mutex) WithLock(action func()) {
+	if action != nil {
+		m.Lock()
+		defer m.Unlock()
+		action()
+	}
 }
