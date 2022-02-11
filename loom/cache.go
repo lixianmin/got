@@ -21,35 +21,36 @@ type cacheJob struct {
 }
 
 type cacheFuture struct {
-	sync.Mutex
+	sync.RWMutex
 	d map[interface{}]*CacheFuture
 }
 
 type Cache struct {
-	expire  time.Duration
-	futures *cacheFuture
-	lockJob sync.Mutex
-	jobChan chan cacheJob
-	wc      WaitClose
+	expire   time.Duration
+	futures  *cacheFuture
+	lockJob  sync.Mutex
+	jobChan  chan cacheJob
+	gcTicker *time.Ticker
+	wc       WaitClose
 }
 
 func NewCache(opts ...CacheOption) *Cache {
 	var args = createCacheArguments(opts)
 	var my = &Cache{
-		expire:  args.expire,
-		futures: &cacheFuture{d: make(map[interface{}]*CacheFuture, 8)},
-		jobChan: make(chan cacheJob, 128), // 加大这个chan的长度, 有助于减小第一次checkLoad()时的执行时间
+		expire:   args.expire,
+		futures:  &cacheFuture{d: make(map[interface{}]*CacheFuture, 8)},
+		jobChan:  make(chan cacheJob, 128), // 加大这个chan的长度, 有助于减小第一次checkLoad()时的执行时间
+		gcTicker: time.NewTicker(args.gcInterval),
 	}
 
-	my.startGoroutines(args.parallel)
-	Repeat(args.gcInterval, my.removeRotted)
+	my.startGoroutines(args)
 	return my
 }
 
-func (my *Cache) startGoroutines(parallel int) {
+func (my *Cache) startGoroutines(args cacheArguments) {
 	var jobChan = my.jobChan
 
-	for i := 0; i < parallel; i++ {
+	for i := 0; i < args.parallel; i++ {
 		go func() {
 			defer DumpIfPanic()
 			for {
@@ -58,6 +59,8 @@ func (my *Cache) startGoroutines(parallel int) {
 					var value, err = job.loader(job.key)
 					job.future.setValue(value, err)
 					job.future.setLoading(false)
+				case <-my.gcTicker.C:
+					my.removeRotted()
 				case <-my.wc.C():
 					break
 				}
@@ -85,50 +88,50 @@ func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 	return future
 }
 
-func (my *Cache) fetchFuture(key interface{}) *CacheFuture {
-	var future *CacheFuture
-	var futures = my.futures
-	futures.Lock()
-	{
-		future = futures.d[key]
-		// 如果future已经rotted，则直接使用新的替换。否则如果返回旧future，用户可能Get()到过期的数据
-		if future == nil || my.isRotted(future) {
-			future = newCacheFuture()
-			futures.d[key] = future
-		}
-	}
-	futures.Unlock()
-
-	return future
-}
-
-// 使用RWMutex并没能提高性能
 //func (my *Cache) fetchFuture1(key interface{}) *CacheFuture {
-//	var futures = my.futures
 //	var future *CacheFuture
-//
-//	// 尝试获取缓存中的future, 如果已经rotted, 则不返回它
-//	futures.RLock()
+//	var futures = my.futures
+//	futures.Lock()
 //	{
 //		future = futures.d[key]
-//		if future != nil && my.isRotted(future) {
-//			future = nil
-//		}
-//	}
-//	futures.RUnlock()
-//
-//	// 如果future为nil, 则代表缓存中不存在或者已经rotted
-//	if future == nil {
-//		futures.Lock()
-//		{
+//		// 如果future已经rotted，则直接使用新的替换。否则如果返回旧future，用户可能Get()到过期的数据
+//		if future == nil || my.isRotted(future) {
 //			future = newCacheFuture()
 //			futures.d[key] = future
 //		}
-//		futures.Unlock()
 //	}
+//	futures.Unlock()
 //
 //	return future
 //}
+
+// 使用RWMutex速度提高60%左右
+func (my *Cache) fetchFuture(key interface{}) *CacheFuture {
+	var futures = my.futures
+	var future *CacheFuture
+
+	// 尝试获取缓存中的future, 如果已经rotted, 则不返回它
+	futures.RLock()
+	{
+		future = futures.d[key]
+		if future != nil && my.isRotted(future) {
+			future = nil
+		}
+	}
+	futures.RUnlock()
+
+	// 如果future为nil, 则代表缓存中不存在或者已经rotted
+	if future == nil {
+		futures.Lock()
+		{
+			future = newCacheFuture()
+			futures.d[key] = future
+		}
+		futures.Unlock()
+	}
+
+	return future
+}
 
 func (my *Cache) checkLoad(future *CacheFuture, key interface{}, loader CacheLoader) {
 	// fast path
@@ -153,14 +156,18 @@ func (my *Cache) checkLoad(future *CacheFuture, key interface{}, loader CacheLoa
 }
 
 func (my *Cache) Close() error {
-	return my.wc.Close(nil)
+	return my.wc.Close(func() error {
+		my.gcTicker.Stop()
+		my.gcTicker = nil
+		return nil
+	})
 }
 
 func (my *Cache) removeRotted() {
 	var futures = my.futures
 	futures.Lock()
 	{
-		for key, future := range my.futures.d {
+		for key, future := range futures.d {
 			if my.isRotted(future) {
 				delete(futures.d, key)
 			}

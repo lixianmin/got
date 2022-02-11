@@ -78,7 +78,7 @@ func (later *laterImpl) stop() {
 	}
 }
 
-// loom.Go()，会启动一个协程，并在defer中调用stop()
+// Go 会启动一个协程，并在defer中调用stop()
 func Go(handler func(later Later)) {
 	go func() {
 		defer DumpIfPanic()
