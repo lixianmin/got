@@ -24,10 +24,7 @@ type CacheFuture struct {
 	err        error
 	updateTime atomic.Value
 	wg         sync.WaitGroup
-
-	// status与m字段, 既用于表示加载状态, 也用于控制只设置一次
-	status uint32
-	m      sync.Mutex
+	status     uint32 // 用于控制加载状态
 }
 
 func newCacheFuture() *CacheFuture {
@@ -47,21 +44,14 @@ func (my *CacheFuture) Get2() (interface{}, error) {
 	return my.value, my.err
 }
 
+// 这个方法只会被调用一次
 func (my *CacheFuture) setValue(value interface{}, err error) {
-	if atomic.LoadUint32(&my.status) == kFutureLoading {
-		my.m.Lock()
-		{
-			if my.status == kFutureLoading {
-				atomic.StoreUint32(&my.status, kFutureLoaded)
-				my.value = value
-				my.err = err
+	my.setStatus(kFutureLoaded)
+	my.value = value
+	my.err = err
 
-				my.updateTime.Store(time.Now())
-				my.wg.Done()
-			}
-		}
-		my.m.Unlock()
-	}
+	my.updateTime.Store(time.Now())
+	my.wg.Done()
 }
 
 func (my *CacheFuture) getUpdateTime() time.Time {

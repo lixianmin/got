@@ -42,6 +42,7 @@ func NewCache(opts ...CacheOption) *Cache {
 		gcTicker: time.NewTicker(args.gcInterval),
 	}
 
+	// 初始化futures
 	var shardingCount = mapSharding.GetShardingCount()
 	my.futures = make([]*cacheFuture, shardingCount)
 	for i := 0; i < shardingCount; i++ {
