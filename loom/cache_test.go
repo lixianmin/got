@@ -93,3 +93,21 @@ func TestCache_LoadMultiTimes(t *testing.T) {
 	fmt.Printf("f1=%d, f2=%d \n", f1.Get1(), f2.Get1())
 	fmt.Printf("cost time = %s\n", time.Now().Sub(start).String())
 }
+
+func BenchmarkCache_LoadMultiTimes(t *testing.B) {
+	var cache = NewCache(WithParallel(4), WithExpire(time.Second), WithGCInterval(3*time.Second))
+	for i := 0; i < 1000; i++ {
+		for j := 0; j < 100; j++ {
+			var k = j
+			go func() {
+				var future = cache.Load(k, func(key interface{}) (interface{}, error) {
+					time.Sleep(time.Second)
+					fmt.Println(k)
+					return k, nil
+				})
+
+				future.Get1()
+			}()
+		}
+	}
+}

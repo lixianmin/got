@@ -14,29 +14,33 @@ Copyright (C) - All Rights Reserved
 
 type CacheLoader = func(key interface{}) (interface{}, error)
 
-type loadJob struct {
+type cacheJob struct {
 	loader CacheLoader
 	key    interface{}
 	future *CacheFuture
 }
 
+type cacheFuture struct {
+	sync.Mutex
+	d map[interface{}]*CacheFuture
+}
+
 type Cache struct {
-	expire      time.Duration
-	lockFutures sync.Mutex
-	futures     map[interface{}]*CacheFuture
-	lockJob     sync.Mutex
-	jobChan     chan loadJob
-	wc          WaitClose
+	expire  time.Duration
+	futures cacheFuture
+	lockJob sync.Mutex
+	jobChan chan cacheJob
+	wc      WaitClose
 }
 
 func NewCache(opts ...CacheOption) *Cache {
 	var args = createCacheArguments(opts)
 	var my = &Cache{
 		expire:  args.expire,
-		futures: make(map[interface{}]*CacheFuture, 8),
-		jobChan: make(chan loadJob, 1),
+		jobChan: make(chan cacheJob, 128), // 加大这个chan的长度, 有助于减小第一次checkLoad()时的执行时间
 	}
 
+	my.futures.d = make(map[interface{}]*CacheFuture, 8)
 	my.startGoroutines(args.parallel)
 	Repeat(args.gcInterval, my.removeRotted)
 	return my
@@ -83,16 +87,16 @@ func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 
 func (my *Cache) fetchFuture(key interface{}) *CacheFuture {
 	var future *CacheFuture
-	my.lockFutures.Lock()
+	my.futures.Lock()
 	{
-		future = my.futures[key]
+		future = my.futures.d[key]
 		// 如果future已经rotted，则直接使用新的替换。否则如果返回旧future，用户可能Get()到过期的数据
 		if future == nil || my.isRotted(future) {
 			future = newCacheFuture()
-			my.futures[key] = future
+			my.futures.d[key] = future
 		}
 	}
-	my.lockFutures.Unlock()
+	my.futures.Unlock()
 
 	return future
 }
@@ -101,11 +105,14 @@ func (my *Cache) checkLoad(future *CacheFuture, key interface{}, loader CacheLoa
 	// fast path
 	if !future.isLoading() {
 		// slow path
+		// lockJob这把锁, 放到Cache而不是CacheFuture中的原因是:
+		//  1. 节约内存
+		//  2. benchmark测试性能区别不大, 估计是因为fast path的原因被均摊了
 		my.lockJob.Lock()
 		{
 			if !future.isLoading() {
 				future.setLoading(true)
-				my.jobChan <- loadJob{
+				my.jobChan <- cacheJob{
 					loader: loader,
 					key:    key,
 					future: future,
@@ -121,15 +128,15 @@ func (my *Cache) Close() error {
 }
 
 func (my *Cache) removeRotted() {
-	my.lockFutures.Lock()
+	my.futures.Lock()
 	{
-		for key, future := range my.futures {
+		for key, future := range my.futures.d {
 			if my.isRotted(future) {
-				delete(my.futures, key)
+				delete(my.futures.d, key)
 			}
 		}
 	}
-	my.lockFutures.Unlock()
+	my.futures.Unlock()
 }
 
 //func (my *Cache) isExpired(future *CacheFuture) bool {
