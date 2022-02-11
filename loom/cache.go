@@ -27,7 +27,7 @@ type cacheFuture struct {
 
 type Cache struct {
 	expire  time.Duration
-	futures cacheFuture
+	futures *cacheFuture
 	lockJob sync.Mutex
 	jobChan chan cacheJob
 	wc      WaitClose
@@ -37,10 +37,10 @@ func NewCache(opts ...CacheOption) *Cache {
 	var args = createCacheArguments(opts)
 	var my = &Cache{
 		expire:  args.expire,
+		futures: &cacheFuture{d: make(map[interface{}]*CacheFuture, 8)},
 		jobChan: make(chan cacheJob, 128), // 加大这个chan的长度, 有助于减小第一次checkLoad()时的执行时间
 	}
 
-	my.futures.d = make(map[interface{}]*CacheFuture, 8)
 	my.startGoroutines(args.parallel)
 	Repeat(args.gcInterval, my.removeRotted)
 	return my
@@ -87,16 +87,17 @@ func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 
 func (my *Cache) fetchFuture(key interface{}) *CacheFuture {
 	var future *CacheFuture
-	my.futures.Lock()
+	var futures = my.futures
+	futures.Lock()
 	{
-		future = my.futures.d[key]
+		future = futures.d[key]
 		// 如果future已经rotted，则直接使用新的替换。否则如果返回旧future，用户可能Get()到过期的数据
 		if future == nil || my.isRotted(future) {
 			future = newCacheFuture()
-			my.futures.d[key] = future
+			futures.d[key] = future
 		}
 	}
-	my.futures.Unlock()
+	futures.Unlock()
 
 	return future
 }
@@ -128,15 +129,16 @@ func (my *Cache) Close() error {
 }
 
 func (my *Cache) removeRotted() {
-	my.futures.Lock()
+	var futures = my.futures
+	futures.Lock()
 	{
 		for key, future := range my.futures.d {
 			if my.isRotted(future) {
-				delete(my.futures.d, key)
+				delete(futures.d, key)
 			}
 		}
 	}
-	my.futures.Unlock()
+	futures.Unlock()
 }
 
 //func (my *Cache) isExpired(future *CacheFuture) bool {
