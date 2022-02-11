@@ -142,23 +142,26 @@ func (my *Cache) fetchFuture(key interface{}) *CacheFuture {
 func (my *Cache) checkLoad(future *CacheFuture, key interface{}, loader CacheLoader) {
 	// fast path
 	if future.getStatus() == kFutureInit {
-		// slow path
-		// lockJob这把锁, 放到Cache而不是CacheFuture中的原因是:
-		//  1. 节约内存
-		//  2. benchmark测试性能区别不大, 估计是因为fast path的原因被均摊了
-		my.lockJob.Lock()
-		{
-			if future.getStatus() == kFutureInit {
-				future.setStatus(kFutureLoading)
-				my.jobChan <- cacheJob{
-					loader: loader,
-					key:    key,
-					future: future,
-				}
+		my.checkLoadSlowPath(future, key, loader)
+	}
+}
+
+func (my *Cache) checkLoadSlowPath(future *CacheFuture, key interface{}, loader CacheLoader) {
+	// lockJob这把锁, 放到Cache而不是CacheFuture中的原因是:
+	//  1. 节约内存
+	//  2. benchmark测试性能区别不大, 估计是因为fast path的原因被均摊了
+	my.lockJob.Lock()
+	{
+		if future.getStatus() == kFutureInit {
+			future.setStatus(kFutureLoading)
+			my.jobChan <- cacheJob{
+				loader: loader,
+				key:    key,
+				future: future,
 			}
 		}
-		my.lockJob.Unlock()
 	}
+	my.lockJob.Unlock()
 }
 
 func (my *Cache) Close() error {
