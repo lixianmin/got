@@ -96,7 +96,7 @@ func TestCache_LoadMultiTimes(t *testing.T) {
 }
 
 func BenchmarkCache_LoadMultiTimes(t *testing.B) {
-	var cache = NewCache(WithParallel(4), WithExpire(time.Millisecond*10), WithGCInterval(3*time.Second))
+	var cache = NewCache(WithParallel(4), WithExpire(time.Microsecond), WithGCInterval(10*time.Microsecond))
 	const threadCount = 100
 	const loopCount = 1000
 
@@ -120,4 +120,5 @@ func BenchmarkCache_LoadMultiTimes(t *testing.B) {
 	}
 
 	wg.Wait()
+	//_ = cache.Close()
 }

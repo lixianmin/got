@@ -164,7 +164,6 @@ func (my *Cache) checkLoad(future *CacheFuture, key interface{}, loader CacheLoa
 func (my *Cache) Close() error {
 	return my.wc.Close(func() error {
 		my.gcTicker.Stop()
-		my.gcTicker = nil
 		return nil
 	})
 }
