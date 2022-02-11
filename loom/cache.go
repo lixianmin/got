@@ -28,7 +28,7 @@ type cacheJob struct {
 }
 
 type cacheFuture struct {
-	sync.RWMutex
+	sync.Mutex
 	d map[interface{}]*CacheFuture
 }
 
@@ -97,30 +97,67 @@ func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 
 	var index, _ = mapSharding.GetShardingIndex(key)
 	var futures = my.futures[index]
+	var next *CacheFuture = nil
 
-	// 尝试获取缓存中的future
-	futures.RLock()
-	var last = futures.d[key]
-	futures.RUnlock()
-
-	var status = my.getFutureStatus(last)
-	if status == kFutureGood {
-		return last
-	}
-
-	var next = newCacheFuture()
+	// 以下代码需要考虑并发, 需要阻止重复加载
 	futures.Lock()
-	futures.d[key] = next
+	var last = futures.d[key]
+	var status = my.getFutureStatus(last)
+	// 可能是empty, expired, rotted
+	if status != kFutureGood {
+		next = newCacheFuture()
+		futures.d[key] = next
+		my.jobChan <- cacheJob{loader: loader, key: key, future: next}
+	}
 	futures.Unlock()
-	my.jobChan <- cacheJob{loader: loader, key: key, future: next}
 
 	// 如果仅仅是expired, 但没到rotted状态, 则返回last, Get1()凑合用不用等IO
-	if status == kFutureExpired {
+	if status == kFutureGood || status == kFutureExpired {
 		return last
 	}
 
 	return next
 }
+
+//func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
+//	assert(key != nil, "key is nil")
+//	assert(loader != nil, "loader is nil")
+//
+//	var index, _ = mapSharding.GetShardingIndex(key)
+//	var futures = my.futures[index]
+//
+//	// 尝试获取缓存中的future
+//	futures.RLock()
+//	var last = futures.d[key]
+//	futures.RUnlock()
+//
+//	var status = my.getFutureStatus(last)
+//	if status == kFutureGood {
+//		return last
+//	}
+//
+//	// 以下代码需要考虑并发, 需要阻止重复加载
+//	var next *CacheFuture = nil
+//	futures.Lock()
+//	{
+//		last = futures.d[key]
+//		status = my.getFutureStatus(last)
+//		// 可能是empty, expired, rotted
+//		if status != kFutureGood {
+//			next = newCacheFuture()
+//			futures.d[key] = next
+//			my.jobChan <- cacheJob{loader: loader, key: key, future: next}
+//		}
+//	}
+//	futures.Unlock()
+//
+//	// 如果仅仅是expired, 但没到rotted状态, 则返回last, Get1()凑合用不用等IO
+//	if status == kFutureGood || status == kFutureExpired {
+//		return last
+//	}
+//
+//	return next
+//}
 
 func (my *Cache) Close() error {
 	return my.wc.Close(nil)
