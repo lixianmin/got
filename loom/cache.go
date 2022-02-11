@@ -110,7 +110,7 @@ func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 //	return future
 //}
 
-// 使用RWMutex速度提高60%左右
+// 使用RWMutex比Mutex速度提高1/3左右
 func (my *Cache) fetchFuture(key interface{}) *CacheFuture {
 	var index, _ = mapSharding.GetShardingIndex(key)
 	var futures = my.futures[index]
