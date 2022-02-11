@@ -27,7 +27,7 @@ type cacheFuture struct {
 
 type Cache struct {
 	expire   time.Duration
-	futures  *cacheFuture
+	futures  []*cacheFuture
 	lockJob  sync.Mutex
 	jobChan  chan cacheJob
 	gcTicker *time.Ticker
@@ -38,9 +38,14 @@ func NewCache(opts ...CacheOption) *Cache {
 	var args = createCacheArguments(opts)
 	var my = &Cache{
 		expire:   args.expire,
-		futures:  &cacheFuture{d: make(map[interface{}]*CacheFuture, 8)},
 		jobChan:  make(chan cacheJob, 128), // 加大这个chan的长度, 有助于减小第一次checkLoad()时的执行时间
 		gcTicker: time.NewTicker(args.gcInterval),
+	}
+
+	var shardingCount = mapSharding.GetShardingCount()
+	my.futures = make([]*cacheFuture, shardingCount)
+	for i := 0; i < shardingCount; i++ {
+		my.futures[i] = &cacheFuture{d: make(map[interface{}]*CacheFuture, 4)}
 	}
 
 	my.startGoroutines(args)
@@ -107,7 +112,8 @@ func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 
 // 使用RWMutex速度提高60%左右
 func (my *Cache) fetchFuture(key interface{}) *CacheFuture {
-	var futures = my.futures
+	var index, _ = mapSharding.GetShardingIndex(key)
+	var futures = my.futures[index]
 	var future *CacheFuture
 
 	// 尝试获取缓存中的future, 如果已经rotted, 则不返回它
@@ -164,16 +170,17 @@ func (my *Cache) Close() error {
 }
 
 func (my *Cache) removeRotted() {
-	var futures = my.futures
-	futures.Lock()
-	{
-		for key, future := range futures.d {
-			if my.isRotted(future) {
-				delete(futures.d, key)
+	for _, futures := range my.futures {
+		futures.Lock()
+		{
+			for key, future := range futures.d {
+				if my.isRotted(future) {
+					delete(futures.d, key)
+				}
 			}
 		}
+		futures.Unlock()
 	}
-	futures.Unlock()
 }
 
 //func (my *Cache) isExpired(future *CacheFuture) bool {
