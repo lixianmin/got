@@ -12,6 +12,13 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
+const (
+	kFutureEmpty   = iota // 无, 则new&load, 返回new
+	kFutureGood           // 有 & 可用, 返回old
+	kFutureExpired        // 有 & 过期, new&load, 返回old
+	kFutureRotted         // 有 & rotted, new&load, 返回new
+)
+
 type CacheLoader = func(key interface{}) (interface{}, error)
 
 type cacheJob struct {
@@ -28,7 +35,6 @@ type cacheFuture struct {
 type Cache struct {
 	expire  time.Duration
 	futures []*cacheFuture
-	lockJob sync.Mutex
 	jobChan chan cacheJob
 	wc      WaitClose
 }
@@ -90,84 +96,30 @@ func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 	assert(key != nil, "key is nil")
 	assert(loader != nil, "loader is nil")
 
-	var future = my.fetchFuture(key)
-	var mayNeedLoad = time.Now().Sub(future.getUpdateTime()) > my.expire
-	if mayNeedLoad {
-		my.checkLoad(future, key, loader)
-	}
-
-	return future
-}
-
-//func (my *Cache) fetchFuture1(key interface{}) *CacheFuture {
-//	var future *CacheFuture
-//	var futures = my.futures
-//	futures.Lock()
-//	{
-//		future = futures.d[key]
-//		// 如果future已经rotted，则直接使用新的替换。否则如果返回旧future，用户可能Get()到过期的数据
-//		if future == nil || my.isRotted(future) {
-//			future = newCacheFuture()
-//			futures.d[key] = future
-//		}
-//	}
-//	futures.Unlock()
-//
-//	return future
-//}
-
-// 使用RWMutex比Mutex速度提高1/3左右
-func (my *Cache) fetchFuture(key interface{}) *CacheFuture {
 	var index, _ = mapSharding.GetShardingIndex(key)
 	var futures = my.futures[index]
-	var future *CacheFuture
 
-	// 尝试获取缓存中的future, 如果已经rotted, 则不返回它
+	// 尝试获取缓存中的future
 	futures.RLock()
-	{
-		future = futures.d[key]
-		if future != nil && my.isRotted(future) {
-			future = nil
-		}
-	}
+	var last = futures.d[key]
 	futures.RUnlock()
 
-	// 如果future为nil, 则代表缓存中不存在或者已经rotted
-	if future == nil {
-		futures.Lock()
-		{
-			future = newCacheFuture()
-			futures.d[key] = future
-		}
-		futures.Unlock()
+	var status = my.getFutureStatus(last)
+	if status == kFutureGood {
+		return last
 	}
 
-	return future
-}
+	var next = newCacheFuture()
+	futures.Lock()
+	futures.d[key] = next
+	futures.Unlock()
+	my.jobChan <- cacheJob{loader: loader, key: key, future: next}
 
-func (my *Cache) checkLoad(future *CacheFuture, key interface{}, loader CacheLoader) {
-	// fast path
-	if future.getStatus() == kFutureInit {
-		my.checkLoadSlowPath(future, key, loader)
+	if status == kFutureExpired {
+		return last
 	}
-}
 
-func (my *Cache) checkLoadSlowPath(future *CacheFuture, key interface{}, loader CacheLoader) {
-	// lockJob这把锁, 放到Cache而不是CacheFuture中的原因是:
-	//  1. 节约内存
-	//  2. benchmark测试性能区别不大, 估计是因为fast path的原因被均摊了
-	my.lockJob.Lock()
-	{
-		if future.getStatus() == kFutureInit {
-			future.setStatus(kFutureLoading)
-			my.jobChan <- cacheJob{
-				loader: loader,
-				key:    key,
-				future: future,
-			}
-		}
-	}
-	my.lockJob.Unlock()
+	return next
 }
 
 func (my *Cache) Close() error {
@@ -179,7 +131,7 @@ func (my *Cache) removeRotted() {
 		futures.Lock()
 		{
 			for key, future := range futures.d {
-				if my.isRotted(future) {
+				if my.getFutureStatus(future) == kFutureRotted {
 					delete(futures.d, key)
 				}
 			}
@@ -188,14 +140,20 @@ func (my *Cache) removeRotted() {
 	}
 }
 
-//func (my *Cache) isExpired(future *CacheFuture) bool {
-//	var updateTime = future.getUpdateTime()
-//	return updateTime != time.Time{} && time.Now().Sub(updateTime) > my.expire
-//}
+func (my *Cache) getFutureStatus(last *CacheFuture) int {
+	if last != nil {
+		var updateTime = last.getUpdateTime()
+		var past = time.Now().Sub(updateTime)
+		var expire = my.expire
 
-// 超过1倍的expire，称为『过期』
-// 超过2倍的expire，称为『腐烂』
-func (my *Cache) isRotted(future *CacheFuture) bool {
-	var updateTime = future.getUpdateTime()
-	return updateTime != time.Time{} && time.Now().Sub(updateTime) > 2*my.expire
+		if updateTime.IsZero() || past < expire {
+			return kFutureGood
+		} else if past < 2*expire {
+			return kFutureExpired
+		} else {
+			return kFutureRotted
+		}
+	}
+
+	return kFutureEmpty
 }
