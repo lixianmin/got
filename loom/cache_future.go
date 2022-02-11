@@ -13,13 +13,21 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
+const (
+	kFutureInit    = 0
+	kFutureLoading = 1
+	kFutureLoaded  = 2
+)
+
 type CacheFuture struct {
 	value      interface{}
 	err        error
 	updateTime atomic.Value
 	wg         sync.WaitGroup
-	firstWait  sync.Once
-	loading    int32
+
+	// status与m字段, 既用于表示加载状态, 也用于控制只设置一次
+	status uint32
+	m      sync.Mutex
 }
 
 func newCacheFuture() *CacheFuture {
@@ -40,28 +48,31 @@ func (my *CacheFuture) Get2() (interface{}, error) {
 }
 
 func (my *CacheFuture) setValue(value interface{}, err error) {
-	my.value = value
-	my.err = err
+	if atomic.LoadUint32(&my.status) == kFutureLoading {
+		my.m.Lock()
+		{
+			if my.status == kFutureLoading {
+				atomic.StoreUint32(&my.status, kFutureLoaded)
+				my.value = value
+				my.err = err
 
-	my.updateTime.Store(time.Now())
-	my.firstWait.Do(func() {
-		my.wg.Done()
-	})
+				my.updateTime.Store(time.Now())
+				my.wg.Done()
+			}
+		}
+		my.m.Unlock()
+	}
 }
 
 func (my *CacheFuture) getUpdateTime() time.Time {
 	return my.updateTime.Load().(time.Time)
 }
 
-func (my *CacheFuture) setLoading(b bool) {
-	var loading int32 = 0
-	if b {
-		loading = 1
-	}
-	atomic.StoreInt32(&my.loading, loading)
+func (my *CacheFuture) setStatus(status uint32) {
+	atomic.StoreUint32(&my.status, status)
 }
 
-func (my *CacheFuture) isLoading() bool {
-	var d = atomic.LoadInt32(&my.loading)
-	return d == 1
+func (my *CacheFuture) getStatus() uint32 {
+	var status = atomic.LoadUint32(&my.status)
+	return status
 }

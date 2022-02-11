@@ -63,7 +63,6 @@ func (my *Cache) startGoroutines(args cacheArguments) {
 				case job := <-jobChan:
 					var value, err = job.loader(job.key)
 					job.future.setValue(value, err)
-					job.future.setLoading(false)
 				case <-my.gcTicker.C:
 					my.removeRotted()
 				case <-my.wc.C():
@@ -141,15 +140,15 @@ func (my *Cache) fetchFuture(key interface{}) *CacheFuture {
 
 func (my *Cache) checkLoad(future *CacheFuture, key interface{}, loader CacheLoader) {
 	// fast path
-	if !future.isLoading() {
+	if future.getStatus() == kFutureInit {
 		// slow path
 		// lockJob这把锁, 放到Cache而不是CacheFuture中的原因是:
 		//  1. 节约内存
 		//  2. benchmark测试性能区别不大, 估计是因为fast path的原因被均摊了
 		my.lockJob.Lock()
 		{
-			if !future.isLoading() {
-				future.setLoading(true)
+			if future.getStatus() == kFutureInit {
+				future.setStatus(kFutureLoading)
 				my.jobChan <- cacheJob{
 					loader: loader,
 					key:    key,
