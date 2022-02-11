@@ -102,6 +102,34 @@ func (my *Cache) fetchFuture(key interface{}) *CacheFuture {
 	return future
 }
 
+// 使用RWMutex并没能提高性能
+//func (my *Cache) fetchFuture1(key interface{}) *CacheFuture {
+//	var futures = my.futures
+//	var future *CacheFuture
+//
+//	// 尝试获取缓存中的future, 如果已经rotted, 则不返回它
+//	futures.RLock()
+//	{
+//		future = futures.d[key]
+//		if future != nil && my.isRotted(future) {
+//			future = nil
+//		}
+//	}
+//	futures.RUnlock()
+//
+//	// 如果future为nil, 则代表缓存中不存在或者已经rotted
+//	if future == nil {
+//		futures.Lock()
+//		{
+//			future = newCacheFuture()
+//			futures.d[key] = future
+//		}
+//		futures.Unlock()
+//	}
+//
+//	return future
+//}
+
 func (my *Cache) checkLoad(future *CacheFuture, key interface{}, loader CacheLoader) {
 	// fast path
 	if !future.isLoading() {

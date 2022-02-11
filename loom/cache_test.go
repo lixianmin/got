@@ -102,7 +102,7 @@ func BenchmarkCache_LoadMultiTimes(t *testing.B) {
 			go func() {
 				var future = cache.Load(k, func(key interface{}) (interface{}, error) {
 					time.Sleep(time.Second)
-					fmt.Println(k)
+					//fmt.Println(k)
 					return k, nil
 				})
 
