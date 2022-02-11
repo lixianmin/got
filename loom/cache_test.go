@@ -120,5 +120,5 @@ func BenchmarkCache_LoadMultiTimes(t *testing.B) {
 	}
 
 	wg.Wait()
-	//_ = cache.Close()
+	_ = cache.Close()
 }

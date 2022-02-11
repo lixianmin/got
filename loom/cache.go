@@ -69,7 +69,7 @@ func (my *Cache) startGoroutines(args cacheArguments) {
 				case <-tickerChan:
 					my.removeRotted()
 				case <-closeChan:
-					break
+					return
 				}
 			}
 		}()
