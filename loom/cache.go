@@ -55,6 +55,8 @@ func NewCache(opts ...CacheOption) *Cache {
 
 func (my *Cache) startGoroutines(args cacheArguments) {
 	var jobChan = my.jobChan
+	var tickerChan = my.gcTicker.C
+	var closeChan = my.wc.C()
 
 	for i := 0; i < args.parallel; i++ {
 		go func() {
@@ -64,9 +66,9 @@ func (my *Cache) startGoroutines(args cacheArguments) {
 				case job := <-jobChan:
 					var value, err = job.loader(job.key)
 					job.future.setValue(value, err)
-				case <-my.gcTicker.C:
+				case <-tickerChan:
 					my.removeRotted()
-				case <-my.wc.C():
+				case <-closeChan:
 					break
 				}
 			}
