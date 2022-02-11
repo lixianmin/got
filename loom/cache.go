@@ -90,8 +90,7 @@ func (my *Cache) startGoroutines(args cacheArguments) {
 // 1. 如果缓存中有对应的Future对象，则直接返回
 // 2. Load()方法自己不会阻塞，直接返回Future对象
 // 3. 如果并发请求Load()方法，不会重复创建，会返回同一个Future对象
-// 4. 超过2*expire的时间，称之为rotted，会直接移除Future对象
-// 5. 被移除的Future对象，如果已经被三方拿到了，可以正常调用Get()方法，如果内部正在加载，会正常加载完成
+// 4. 被移除的Future对象，如果已经被三方拿到了，可以正常调用Get()方法，如果内部正在加载，会正常加载完成
 func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 	assert(key != nil, "key is nil")
 	assert(loader != nil, "loader is nil")
@@ -115,6 +114,7 @@ func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 	futures.Unlock()
 	my.jobChan <- cacheJob{loader: loader, key: key, future: next}
 
+	// 如果仅仅是expired, 但没到rotted状态, 则返回last, Get1()凑合用不用等IO
 	if status == kFutureExpired {
 		return last
 	}
@@ -129,11 +129,10 @@ func (my *Cache) Close() error {
 func (my *Cache) removeRotted() {
 	for _, futures := range my.futures {
 		futures.Lock()
-		{
-			for key, future := range futures.d {
-				if my.getFutureStatus(future) == kFutureRotted {
-					delete(futures.d, key)
-				}
+		for key, future := range futures.d {
+			var status = my.getFutureStatus(future)
+			if status == kFutureRotted {
+				delete(futures.d, key)
 			}
 		}
 		futures.Unlock()
