@@ -14,8 +14,9 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type CacheFuture struct {
-	value      interface{}
-	err        error
+	value interface{}
+	err   error
+	// todo 是否可以把updateTime改为unsafe.pointer, 节约一点儿内存
 	updateTime atomic.Value
 	wg         sync.WaitGroup
 }

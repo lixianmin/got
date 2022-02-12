@@ -102,6 +102,7 @@ func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 	var last = futures.d[key]
 	var status = my.getFutureStatus(last)
 	// 可能是empty, expired, rotted
+	// todo 如果是expired的future, 本次会返回last, 但立马会把next写入, 下次就会是good状态但未加载完的对象了
 	if status != kFutureGood {
 		next = newCacheFuture()
 		futures.d[key] = next
