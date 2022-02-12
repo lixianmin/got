@@ -33,7 +33,7 @@ type cacheFuture struct {
 }
 
 type Cache struct {
-	expire  time.Duration
+	args    cacheArguments
 	futures []*cacheFuture
 	jobChan chan cacheJob
 	wc      WaitClose
@@ -42,7 +42,7 @@ type Cache struct {
 func NewCache(opts ...CacheOption) *Cache {
 	var args = createCacheArguments(opts)
 	var my = &Cache{
-		expire:  args.expire,
+		args:    args,
 		jobChan: make(chan cacheJob, 128), // 加大这个chan的长度, 有助于减小第一次checkLoad()时的执行时间
 	}
 
@@ -53,15 +53,17 @@ func NewCache(opts ...CacheOption) *Cache {
 		my.futures[i] = &cacheFuture{d: make(map[interface{}]*CacheFuture, 4)}
 	}
 
-	my.startGoroutines(args)
+	my.startGoroutines()
 	return my
 }
 
-func (my *Cache) startGoroutines(args cacheArguments) {
+func (my *Cache) startGoroutines() {
 	var jobChan = my.jobChan
 	var closeChan = my.wc.C()
 
-	var ticker = time.NewTicker(args.gcInterval)
+	var args = my.args
+	var gcInterval = args.normalExpire * 4
+	var ticker = time.NewTicker(gcInterval)
 	var stopOnce sync.Once
 
 	for i := 0; i < args.parallel; i++ {
@@ -176,11 +178,14 @@ func (my *Cache) removeRotted() {
 	}
 }
 
-func (my *Cache) getFutureStatus(last *CacheFuture) int {
-	if last != nil {
-		var updateTime = last.getUpdateTime()
+func (my *Cache) getFutureStatus(future *CacheFuture) int {
+	if future != nil {
+		var updateTime = future.getUpdateTime()
 		var past = time.Now().Sub(updateTime)
-		var expire = my.expire
+		var expire = my.args.normalExpire
+		if future.err != nil {
+			expire = my.args.errorExpire
+		}
 
 		if updateTime.IsZero() || past < expire {
 			return kFutureGood

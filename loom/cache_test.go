@@ -15,7 +15,7 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 func TestCache_Load(t *testing.T) {
-	var cache = NewCache(WithParallel(4), WithExpire(10*time.Second))
+	var cache = NewCache(WithParallel(4), WithExpire(10*time.Second, time.Second))
 	var start = time.Now()
 
 	var f1 = cache.Load(1, func(key interface{}) (interface{}, error) {
@@ -60,7 +60,7 @@ func TestCache_Load(t *testing.T) {
 }
 
 func TestCache_LoadMultiTimes(t *testing.T) {
-	var cache = NewCache(WithParallel(4), WithExpire(time.Second), WithGCInterval(3*time.Second))
+	var cache = NewCache(WithParallel(4), WithExpire(time.Second, time.Second))
 	var start = time.Now()
 
 	var f1 = cache.Load(1, func(key interface{}) (interface{}, error) {
@@ -96,7 +96,7 @@ func TestCache_LoadMultiTimes(t *testing.T) {
 }
 
 func BenchmarkCache_LoadMultiTimes(t *testing.B) {
-	var cache = NewCache(WithParallel(4), WithExpire(time.Microsecond), WithGCInterval(10*time.Microsecond))
+	var cache = NewCache(WithParallel(4), WithExpire(time.Microsecond, time.Millisecond))
 	const threadCount = 100
 	const loopCount = 1000
 

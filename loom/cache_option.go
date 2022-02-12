@@ -10,18 +10,18 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type cacheArguments struct {
-	parallel   int
-	expire     time.Duration
-	gcInterval time.Duration
+	parallel     int
+	normalExpire time.Duration
+	errorExpire  time.Duration
 }
 
 type CacheOption func(*cacheArguments)
 
 func createCacheArguments(options []CacheOption) cacheArguments {
 	var args = cacheArguments{
-		parallel:   1,
-		expire:     time.Second,
-		gcInterval: time.Minute,
+		parallel:     1,
+		normalExpire: time.Second,
+		errorExpire:  time.Millisecond * 100,
 	}
 
 	for _, opt := range options {
@@ -39,18 +39,11 @@ func WithParallel(num int) CacheOption {
 	}
 }
 
-func WithExpire(expire time.Duration) CacheOption {
+func WithExpire(normal time.Duration, error time.Duration) CacheOption {
 	return func(args *cacheArguments) {
-		if expire > 0 {
-			args.expire = expire
-		}
-	}
-}
-
-func WithGCInterval(interval time.Duration) CacheOption {
-	return func(args *cacheArguments) {
-		if interval > 0 {
-			args.gcInterval = interval
+		if normal >= error && error > 0 {
+			args.normalExpire = normal
+			args.errorExpire = error
 		}
 	}
 }
