@@ -1,7 +1,9 @@
 package loom
 
 import (
+	"errors"
 	"fmt"
+	"math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -96,21 +98,27 @@ func TestCache_LoadMultiTimes(t *testing.T) {
 }
 
 func BenchmarkCache_LoadMultiTimes(t *testing.B) {
-	var cache = NewCache(WithParallel(4), WithExpire(time.Microsecond, time.Millisecond))
+	var cache = NewCache(WithParallel(4), WithExpire(time.Microsecond, time.Microsecond/10))
 	const threadCount = 100
 	const loopCount = 1000
 
 	var wg = sync.WaitGroup{}
 	wg.Add(threadCount * loopCount)
 
+	var err = errors.New("test")
+
 	for i := 0; i < threadCount; i++ {
 		go func() {
 			for j := 0; j < loopCount; j++ {
 				var k = j
 				var future = cache.Load(k, func(key interface{}) (interface{}, error) {
-					//time.Sleep(time.Millisecond * 100)
+					time.Sleep(time.Millisecond / 100)
 					//fmt.Println(k)
-					return k, nil
+					if rand.Float32() < 0.5 {
+						return key, err
+					}
+
+					return key, nil
 				})
 
 				future.Get1()

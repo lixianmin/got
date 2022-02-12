@@ -41,9 +41,9 @@ func WithParallel(num int) CacheOption {
 
 func WithExpire(normal time.Duration, error time.Duration) CacheOption {
 	return func(args *cacheArguments) {
-		if normal >= error && error > 0 {
-			args.normalExpire = normal
-			args.errorExpire = error
-		}
+		assert(normal >= error, "assert failed: normal>=error")
+		assert(error > 0, "assert failed: error>0")
+		args.normalExpire = normal
+		args.errorExpire = error
 	}
 }

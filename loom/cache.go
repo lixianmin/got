@@ -181,6 +181,7 @@ func (my *Cache) getFutureStatus(future *CacheFuture) int {
 	if future != nil {
 		var updateTime = future.getUpdateTime()
 		var past = time.Now().Sub(updateTime)
+
 		var expire = my.args.normalExpire
 		if future.err != nil {
 			expire = my.args.errorExpire
