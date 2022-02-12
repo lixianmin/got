@@ -4,6 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unsafe"
 )
 
 /********************************************************************
@@ -14,16 +15,15 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type CacheFuture struct {
-	value interface{}
-	err   error
-	// todo 是否可以把updateTime改为unsafe.pointer, 节约一点儿内存
-	updateTime atomic.Value
+	value       interface{}
+	err        error
+	updateTime unsafe.Pointer
 	wg         sync.WaitGroup
 }
 
 func newCacheFuture() *CacheFuture {
 	var item = &CacheFuture{}
-	item.updateTime.Store(time.Time{})
+	atomic.StorePointer(&item.updateTime, unsafe.Pointer(&time.Time{}))
 	item.wg.Add(1)
 	return item
 }
@@ -43,10 +43,16 @@ func (my *CacheFuture) setValue(value interface{}, err error) {
 	my.value = value
 	my.err = err
 
-	my.updateTime.Store(time.Now())
+	var now = time.Now()
+	atomic.StorePointer(&my.updateTime, unsafe.Pointer(&now))
 	my.wg.Done()
 }
 
 func (my *CacheFuture) getUpdateTime() time.Time {
-	return my.updateTime.Load().(time.Time)
+	var p = (*time.Time)(atomic.LoadPointer(&my.updateTime))
+	if p != nil {
+		return *p
+	}
+
+	return time.Time{}
 }
