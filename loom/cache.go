@@ -33,17 +33,19 @@ type cacheFuture struct {
 }
 
 type Cache struct {
-	args    cacheArguments
-	futures []*cacheFuture
-	jobChan chan cacheJob
-	wc      WaitClose
+	args     cacheArguments
+	futures  []*cacheFuture
+	jobChan  chan cacheJob
+	gcTicker *time.Ticker
+	wc       WaitClose
 }
 
 func NewCache(opts ...CacheOption) *Cache {
 	var args = createCacheArguments(opts)
 	var my = &Cache{
-		args:    args,
-		jobChan: make(chan cacheJob, 128), // 加大这个chan的长度, 有助于减小第一次checkLoad()时的执行时间
+		args:     args,
+		jobChan:  make(chan cacheJob, 128), // 加大这个chan的长度, 有助于减小第一次checkLoad()时的执行时间
+		gcTicker: time.NewTicker(args.normalExpire * 4),
 	}
 
 	// 初始化futures
@@ -60,25 +62,19 @@ func NewCache(opts ...CacheOption) *Cache {
 func (my *Cache) startGoroutines() {
 	var jobChan = my.jobChan
 	var closeChan = my.wc.C()
-
 	var args = my.args
-	var gcInterval = args.normalExpire * 4
-	var ticker = time.NewTicker(gcInterval)
-	var stopOnce sync.Once
+	var gcTicker = my.gcTicker
 
 	for i := 0; i < args.parallel; i++ {
 		go func() {
 			defer DumpIfPanic()
-			defer stopOnce.Do(func() {
-				ticker.Stop()
-			})
 
 			for {
 				select {
 				case job := <-jobChan:
 					var value, err = job.loader(job.key)
 					job.future.setValue(value, err)
-				case <-ticker.C:
+				case <-gcTicker.C:
 					my.removeRotted()
 				case <-closeChan:
 					return
@@ -162,7 +158,10 @@ func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 //}
 
 func (my *Cache) Close() error {
-	return my.wc.Close(nil)
+	return my.wc.Close(func() error {
+		my.gcTicker.Stop()
+		return nil
+	})
 }
 
 func (my *Cache) removeRotted() {
