@@ -55,13 +55,13 @@ func NewCache(opts ...CacheOption) *Cache {
 		my.futures[i] = &cacheFuture{d: make(map[interface{}]*CacheFuture, 4)}
 	}
 
-	my.startGoroutines()
+	var closeChan = my.wc.C()
+	my.startGoroutines(closeChan)
 	return my
 }
 
-func (my *Cache) startGoroutines() {
+func (my *Cache) startGoroutines(closeChan <-chan struct{}) {
 	var jobChan = my.jobChan
-	var closeChan = my.wc.C()
 	var args = my.args
 	var gcTicker = my.gcTicker
 
@@ -122,7 +122,7 @@ func (my *Cache) sendJob(job cacheJob) {
 	// 如果Cache被Close()了, 通过closeChan确保不会因此被阻塞
 	select {
 	case my.jobChan <- job:
-	case <-my.wc.closeChan:
+	case <-my.wc.closeChan: // closeChan在NewCache()中已经初始化了
 	}
 }
 
