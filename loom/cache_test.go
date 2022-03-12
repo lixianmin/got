@@ -97,6 +97,18 @@ func TestCache_LoadMultiTimes(t *testing.T) {
 	fmt.Printf("cost time = %s\n", time.Now().Sub(start).String())
 }
 
+func TestCache_Close(t *testing.T) {
+	var cache = NewCache(WithJobChanSize(1))
+	_ = cache.Close()
+
+	// 期望这里不会卡死
+	for i := 0; i < 10; i++ {
+		cache.Load(i, func(key interface{}) (interface{}, error) {
+			return i, nil
+		})
+	}
+}
+
 func BenchmarkCache_LoadMultiTimes(t *testing.B) {
 	var cache = NewCache(WithParallel(4), WithExpire(time.Microsecond, time.Microsecond/10))
 	const threadCount = 100

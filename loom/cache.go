@@ -44,7 +44,7 @@ func NewCache(opts ...CacheOption) *Cache {
 	var args = createCacheArguments(opts)
 	var my = &Cache{
 		args:     args,
-		jobChan:  make(chan cacheJob, 128), // 加大这个chan的长度, 有助于减小第一次checkLoad()时的执行时间
+		jobChan:  make(chan cacheJob, args.jobChanSize),
 		gcTicker: time.NewTicker(args.normalExpire * 4),
 	}
 
@@ -106,7 +106,7 @@ func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 	if status != kFutureGood {
 		next = newCacheFuture()
 		futures.d[key] = next
-		my.jobChan <- cacheJob{loader: loader, key: key, future: next}
+		my.sendJob(cacheJob{loader: loader, key: key, future: next})
 	}
 	futures.Unlock()
 
@@ -116,6 +116,14 @@ func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 	}
 
 	return next
+}
+
+func (my *Cache) sendJob(job cacheJob) {
+	// 如果Cache被Close()了, 通过closeChan确保不会因此被阻塞
+	select {
+	case my.jobChan <- job:
+	case <-my.wc.closeChan:
+	}
 }
 
 //func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {

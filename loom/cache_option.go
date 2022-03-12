@@ -13,6 +13,7 @@ type cacheArguments struct {
 	parallel     int
 	normalExpire time.Duration
 	errorExpire  time.Duration
+	jobChanSize  int
 }
 
 type CacheOption func(*cacheArguments)
@@ -22,6 +23,7 @@ func createCacheArguments(options []CacheOption) cacheArguments {
 		parallel:     1,
 		normalExpire: time.Second,
 		errorExpire:  time.Millisecond * 100,
+		jobChanSize:  128, // 加大这个chan的长度, 有助于减小第一次checkLoad()时的执行时间
 	}
 
 	for _, opt := range options {
@@ -45,5 +47,12 @@ func WithExpire(normal time.Duration, error time.Duration) CacheOption {
 		assert(error > 0, "assert failed: error>0")
 		args.normalExpire = normal
 		args.errorExpire = error
+	}
+}
+
+func WithJobChanSize(size int) CacheOption {
+	return func(args *cacheArguments) {
+		assert(size > 0, "assert failed: size>0")
+		args.jobChanSize = size
 	}
 }
