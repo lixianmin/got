@@ -36,8 +36,7 @@ func NewScript(hostname, script string, opts ...ScriptOption) *Script {
 
 	// 默认值
 	var options = scriptOptions{
-		scriptName: defaultScriptName,
-		sha256:     true,
+		name: defaultName,
 	}
 
 	// 初始化
@@ -46,13 +45,7 @@ func NewScript(hostname, script string, opts ...ScriptOption) *Script {
 	}
 
 	// 计算文件名
-	var filename = options.scriptName
-	if options.sha256 {
-		filename += "." + sumSHA256(script)
-	}
-
-	filename += ".sh"
-
+	var filename = options.name + "." + sumSHA256(script) + ".sh"
 	var my = &Script{
 		hostname: hostname,
 		script:   script,
@@ -64,7 +57,7 @@ func NewScript(hostname, script string, opts ...ScriptOption) *Script {
 }
 
 func (my *Script) Run(args ...string) ([]byte, error) {
-	// 这个方案有点redis的evalsha
+	// 这个方案有点像redis的evalsha
 	var output, err = my.runScript(args...)
 	if err != nil { // 主要的目的是『如果没有则创建』
 		var filename = my.filename
@@ -93,7 +86,9 @@ func (my *Script) runScript(args ...string) ([]byte, error) {
 
 	// -tt 可避免 Pseudo-terminal will not be allocated because stdin is not a terminal
 	// -o StrictHostKeyChecking=no  可避免 The authenticity of host 'xxx' can't be established. RSA key fingerprint is xxx. Are you sure you want to continue connecting (yes/no)
-	var list = append([]string{my.hostname, "-tt", "-o", "StrictHostKeyChecking=no", "/bin/bash", remotePath}, args...)
+	//
+	// 2022-03-17 发现在执行远程script文件时, 会引发 tcgetattr: Inappropriate ioctl for device , 而这个是由-tt参数引起的. 现在因为是先scp脚本过去再执行, 可能已经不再需要-tt参数了, 先删除
+	var list = append([]string{my.hostname, "-o", "StrictHostKeyChecking=no", "/bin/bash", remotePath}, args...)
 	var cmd = exec.Command("ssh", list...)
 	var output, err = cmd.CombinedOutput()
 	return output, err
