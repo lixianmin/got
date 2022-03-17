@@ -36,7 +36,8 @@ func NewScript(hostname, script string, opts ...ScriptOption) *Script {
 
 	// 默认值
 	var options = scriptOptions{
-		prefix: defaultPrefix,
+		scriptName: defaultScriptName,
+		sha256:     true,
 	}
 
 	// 初始化
@@ -44,7 +45,14 @@ func NewScript(hostname, script string, opts ...ScriptOption) *Script {
 		opt(&options)
 	}
 
-	var filename = options.prefix + sumSHA256(script) + ".sh"
+	// 计算文件名
+	var filename = options.scriptName
+	if options.sha256 {
+		filename += "." + sumSHA256(script)
+	}
+
+	filename += ".sh"
+
 	var my = &Script{
 		hostname: hostname,
 		script:   script,
