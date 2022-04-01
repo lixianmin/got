@@ -14,17 +14,17 @@ Copyright (C) - All Rights Reserved
 
 type Loader = func(key interface{}) (interface{}, error)
 
-//type Cache interface {
-//	Load(key interface{}, loader Loader) *Future
-//}
-
-type Cache struct {
-	*CacheImpl
+type Cache interface {
+	Load(key interface{}, loader Loader) *Future
 }
 
-func NewCache(opts ...Option) *Cache {
+type wrapper struct {
+	*cacheImpl
+}
+
+func NewCache(opts ...Option) Cache {
 	var args = createArguments(opts)
-	var my = &Cache{&CacheImpl{
+	var my = &wrapper{&cacheImpl{
 		args:      args,
 		jobChan:   make(chan cacheJob, args.jobChanSize),
 		gcTicker:  time.NewTicker(args.normalExpire * 4),
@@ -39,9 +39,9 @@ func NewCache(opts ...Option) *Cache {
 	}
 
 	my.startJobGoroutines()
-	runtime.SetFinalizer(my, func(my *Cache) {
-		my.gcTicker.Stop()
-		close(my.closeChan)
+	runtime.SetFinalizer(my, func(w *wrapper) {
+		w.gcTicker.Stop()
+		close(w.closeChan)
 		//fmt.Println("finalized")
 	})
 	return my

@@ -33,7 +33,7 @@ type cacheFuture struct {
 	d map[interface{}]*Future
 }
 
-type CacheImpl struct {
+type cacheImpl struct {
 	args      arguments
 	futures   []*cacheFuture
 	jobChan   chan cacheJob
@@ -41,7 +41,7 @@ type CacheImpl struct {
 	closeChan chan struct{}
 }
 
-func (my *CacheImpl) startJobGoroutines() {
+func (my *cacheImpl) startJobGoroutines() {
 	var jobChan = my.jobChan
 	var parallel = my.args.parallel
 	var gcTicker = my.gcTicker
@@ -71,7 +71,7 @@ func (my *CacheImpl) startJobGoroutines() {
 // 2. Load()方法自己不会阻塞，直接返回Future对象
 // 3. 如果并发请求Load()方法，不会重复创建，会返回同一个Future对象
 // 4. 被移除的Future对象，如果已经被三方拿到了，可以正常调用Get()方法，如果内部正在加载，会正常加载完成
-func (my *CacheImpl) Load(key interface{}, loader Loader) *Future {
+func (my *cacheImpl) Load(key interface{}, loader Loader) *Future {
 	assert(key != nil, "key is nil")
 	assert(loader != nil, "loader is nil")
 
@@ -100,7 +100,7 @@ func (my *CacheImpl) Load(key interface{}, loader Loader) *Future {
 	return next
 }
 
-func (my *CacheImpl) sendJob(job cacheJob) {
+func (my *cacheImpl) sendJob(job cacheJob) {
 	// 如果Cache被Close()了, 通过closeChan确保不会因此被阻塞
 	select {
 	case my.jobChan <- job:
@@ -108,7 +108,7 @@ func (my *CacheImpl) sendJob(job cacheJob) {
 	}
 }
 
-//func (my *CacheImpl) Load(key interface{}, loader Loader) *Future {
+//func (my *cacheImpl) Load(key interface{}, loader Loader) *Future {
 //	assert(key != nil, "key is nil")
 //	assert(loader != nil, "loader is nil")
 //
@@ -148,7 +148,7 @@ func (my *CacheImpl) sendJob(job cacheJob) {
 //	return next
 //}
 
-func (my *CacheImpl) removeRotted() {
+func (my *cacheImpl) removeRotted() {
 	for _, futures := range my.futures {
 		futures.Lock()
 		for key, future := range futures.d {
@@ -161,7 +161,7 @@ func (my *CacheImpl) removeRotted() {
 	}
 }
 
-func (my *CacheImpl) getFutureStatus(future *Future) int {
+func (my *cacheImpl) getFutureStatus(future *Future) int {
 	if future != nil {
 		var updateTime = future.getUpdateTime()
 		var past = time.Now().Sub(updateTime)
