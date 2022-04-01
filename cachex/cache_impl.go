@@ -1,6 +1,7 @@
-package loom
+package cachex
 
 import (
+	"github.com/lixianmin/got/loom"
 	"sync"
 	"time"
 )
@@ -19,7 +20,7 @@ const (
 	kFutureRotted         // 有 & rotted, new&load, 返回new
 )
 
-type CacheLoader = func(key interface{}) (interface{}, error)
+var cacheSharding = loom.NewSharding()
 
 type cacheJob struct {
 	loader CacheLoader
@@ -32,42 +33,23 @@ type cacheFuture struct {
 	d map[interface{}]*CacheFuture
 }
 
-type Cache struct {
-	args     cacheArguments
-	futures  []*cacheFuture
-	jobChan  chan cacheJob
-	gcTicker *time.Ticker
-	wc       WaitClose
+type CacheImpl struct {
+	args      cacheArguments
+	futures   []*cacheFuture
+	jobChan   chan cacheJob
+	gcTicker  *time.Ticker
+	closeChan chan struct{}
 }
 
-func NewCache(opts ...CacheOption) *Cache {
-	var args = createCacheArguments(opts)
-	var my = &Cache{
-		args:     args,
-		jobChan:  make(chan cacheJob, args.jobChanSize),
-		gcTicker: time.NewTicker(args.normalExpire * 4),
-	}
-
-	// 初始化futures
-	var shardingCount = mapSharding.GetShardingCount()
-	my.futures = make([]*cacheFuture, shardingCount)
-	for i := 0; i < shardingCount; i++ {
-		my.futures[i] = &cacheFuture{d: make(map[interface{}]*CacheFuture, 4)}
-	}
-
-	var closeChan = my.wc.C()
-	my.startGoroutines(closeChan)
-	return my
-}
-
-func (my *Cache) startGoroutines(closeChan <-chan struct{}) {
+func (my *CacheImpl) startJobGoroutines() {
 	var jobChan = my.jobChan
-	var args = my.args
+	var parallel = my.args.parallel
 	var gcTicker = my.gcTicker
+	var closeChan = my.closeChan
 
-	for i := 0; i < args.parallel; i++ {
+	for i := 0; i < parallel; i++ {
 		go func() {
-			defer DumpIfPanic()
+			defer loom.DumpIfPanic()
 
 			for {
 				select {
@@ -89,11 +71,11 @@ func (my *Cache) startGoroutines(closeChan <-chan struct{}) {
 // 2. Load()方法自己不会阻塞，直接返回Future对象
 // 3. 如果并发请求Load()方法，不会重复创建，会返回同一个Future对象
 // 4. 被移除的Future对象，如果已经被三方拿到了，可以正常调用Get()方法，如果内部正在加载，会正常加载完成
-func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
+func (my *CacheImpl) Load(key interface{}, loader CacheLoader) *CacheFuture {
 	assert(key != nil, "key is nil")
 	assert(loader != nil, "loader is nil")
 
-	var index, _ = mapSharding.GetShardingIndex(key)
+	var index, _ = cacheSharding.GetShardingIndex(key)
 	var futures = my.futures[index]
 	var next *CacheFuture = nil
 
@@ -118,19 +100,19 @@ func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
 	return next
 }
 
-func (my *Cache) sendJob(job cacheJob) {
+func (my *CacheImpl) sendJob(job cacheJob) {
 	// 如果Cache被Close()了, 通过closeChan确保不会因此被阻塞
 	select {
 	case my.jobChan <- job:
-	case <-my.wc.closeChan: // closeChan在NewCache()中已经初始化了
+	case <-my.closeChan: // closeChan在NewCache()中已经初始化了
 	}
 }
 
-//func (my *Cache) Load(key interface{}, loader CacheLoader) *CacheFuture {
+//func (my *CacheImpl) Load(key interface{}, loader CacheLoader) *CacheFuture {
 //	assert(key != nil, "key is nil")
 //	assert(loader != nil, "loader is nil")
 //
-//	var index, _ = mapSharding.GetShardingIndex(key)
+//	var index, _ = cacheSharding.GetShardingIndex(key)
 //	var futures = my.futures[index]
 //
 //	// 尝试获取缓存中的future
@@ -166,14 +148,7 @@ func (my *Cache) sendJob(job cacheJob) {
 //	return next
 //}
 
-func (my *Cache) Close() error {
-	return my.wc.Close(func() error {
-		my.gcTicker.Stop()
-		return nil
-	})
-}
-
-func (my *Cache) removeRotted() {
+func (my *CacheImpl) removeRotted() {
 	for _, futures := range my.futures {
 		futures.Lock()
 		for key, future := range futures.d {
@@ -186,7 +161,7 @@ func (my *Cache) removeRotted() {
 	}
 }
 
-func (my *Cache) getFutureStatus(future *CacheFuture) int {
+func (my *CacheImpl) getFutureStatus(future *CacheFuture) int {
 	if future != nil {
 		var updateTime = future.getUpdateTime()
 		var past = time.Now().Sub(updateTime)

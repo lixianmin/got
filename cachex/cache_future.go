@@ -1,4 +1,4 @@
-package loom
+package cachex
 
 import (
 	"sync"
@@ -15,7 +15,7 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type CacheFuture struct {
-	value       interface{}
+	value      interface{}
 	err        error
 	updateTime unsafe.Pointer
 	wg         sync.WaitGroup

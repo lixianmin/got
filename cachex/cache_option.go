@@ -1,6 +1,8 @@
-package loom
+package cachex
 
-import "time"
+import (
+	"time"
+)
 
 /********************************************************************
 created:    2021-08-06
@@ -18,7 +20,7 @@ type cacheArguments struct {
 
 type CacheOption func(*cacheArguments)
 
-func createCacheArguments(options []CacheOption) cacheArguments {
+func createArguments(options []CacheOption) cacheArguments {
 	var args = cacheArguments{
 		parallel:     1,
 		normalExpire: time.Second,

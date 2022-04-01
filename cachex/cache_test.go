@@ -1,9 +1,10 @@
-package loom
+package cachex
 
 import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -99,7 +100,6 @@ func TestCache_LoadMultiTimes(t *testing.T) {
 
 func TestCache_Close(t *testing.T) {
 	var cache = NewCache(WithJobChanSize(1))
-	_ = cache.Close()
 
 	// 期望这里不会卡死
 	for i := 0; i < 10; i++ {
@@ -140,5 +140,17 @@ func BenchmarkCache_LoadMultiTimes(t *testing.B) {
 	}
 
 	wg.Wait()
-	_ = cache.Close()
+}
+
+func TestCacheFinalizer(t *testing.T) {
+	var cache = NewCache(WithParallel(4), WithExpire(time.Microsecond, time.Microsecond/10))
+	var result = cache.Load("123", func(key interface{}) (interface{}, error) {
+		return 10, nil
+	})
+
+	result.Get1()
+	cache = nil
+
+	runtime.GC()
+	time.Sleep(1 * time.Second)
 }
