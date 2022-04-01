@@ -39,6 +39,7 @@ func NewCache(opts ...Option) Cache {
 	}
 
 	my.startJobGoroutines()
+	// 参考: https://zhuanlan.zhihu.com/p/76504936
 	runtime.SetFinalizer(my, func(w *wrapper) {
 		w.gcTicker.Stop()
 		close(w.closeChan)
