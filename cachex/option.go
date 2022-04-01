@@ -11,17 +11,17 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type cacheArguments struct {
+type arguments struct {
 	parallel     int
 	normalExpire time.Duration
 	errorExpire  time.Duration
 	jobChanSize  int
 }
 
-type CacheOption func(*cacheArguments)
+type Option func(*arguments)
 
-func createArguments(options []CacheOption) cacheArguments {
-	var args = cacheArguments{
+func createArguments(options []Option) arguments {
+	var args = arguments{
 		parallel:     1,
 		normalExpire: time.Second,
 		errorExpire:  time.Millisecond * 100,
@@ -35,16 +35,16 @@ func createArguments(options []CacheOption) cacheArguments {
 	return args
 }
 
-func WithParallel(num int) CacheOption {
-	return func(args *cacheArguments) {
+func WithParallel(num int) Option {
+	return func(args *arguments) {
 		if num > 0 {
 			args.parallel = num
 		}
 	}
 }
 
-func WithExpire(normal time.Duration, error time.Duration) CacheOption {
-	return func(args *cacheArguments) {
+func WithExpire(normal time.Duration, error time.Duration) Option {
+	return func(args *arguments) {
 		assert(normal >= error, "assert failed: normal>=error")
 		assert(error > 0, "assert failed: error>0")
 		args.normalExpire = normal
@@ -52,8 +52,8 @@ func WithExpire(normal time.Duration, error time.Duration) CacheOption {
 	}
 }
 
-func WithJobChanSize(size int) CacheOption {
-	return func(args *cacheArguments) {
+func WithJobChanSize(size int) Option {
+	return func(args *arguments) {
 		assert(size > 0, "assert failed: size>0")
 		args.jobChanSize = size
 	}

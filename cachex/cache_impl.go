@@ -23,18 +23,18 @@ const (
 var cacheSharding = loom.NewSharding()
 
 type cacheJob struct {
-	loader CacheLoader
+	loader Loader
 	key    interface{}
-	future *CacheFuture
+	future *Future
 }
 
 type cacheFuture struct {
 	sync.Mutex
-	d map[interface{}]*CacheFuture
+	d map[interface{}]*Future
 }
 
 type CacheImpl struct {
-	args      cacheArguments
+	args      arguments
 	futures   []*cacheFuture
 	jobChan   chan cacheJob
 	gcTicker  *time.Ticker
@@ -71,13 +71,13 @@ func (my *CacheImpl) startJobGoroutines() {
 // 2. Load()方法自己不会阻塞，直接返回Future对象
 // 3. 如果并发请求Load()方法，不会重复创建，会返回同一个Future对象
 // 4. 被移除的Future对象，如果已经被三方拿到了，可以正常调用Get()方法，如果内部正在加载，会正常加载完成
-func (my *CacheImpl) Load(key interface{}, loader CacheLoader) *CacheFuture {
+func (my *CacheImpl) Load(key interface{}, loader Loader) *Future {
 	assert(key != nil, "key is nil")
 	assert(loader != nil, "loader is nil")
 
 	var index, _ = cacheSharding.GetShardingIndex(key)
 	var futures = my.futures[index]
-	var next *CacheFuture = nil
+	var next *Future = nil
 
 	// 以下代码需要考虑并发, 需要阻止重复加载
 	futures.Lock()
@@ -86,7 +86,7 @@ func (my *CacheImpl) Load(key interface{}, loader CacheLoader) *CacheFuture {
 	// 可能是empty, expired, rotted
 	// todo 如果是expired的future, 本次会返回last, 但立马会把next写入, 下次就会是good状态但未加载完的对象了
 	if status != kFutureGood {
-		next = newCacheFuture()
+		next = newFuture()
 		futures.d[key] = next
 		my.sendJob(cacheJob{loader: loader, key: key, future: next})
 	}
@@ -108,7 +108,7 @@ func (my *CacheImpl) sendJob(job cacheJob) {
 	}
 }
 
-//func (my *CacheImpl) Load(key interface{}, loader CacheLoader) *CacheFuture {
+//func (my *CacheImpl) Load(key interface{}, loader Loader) *Future {
 //	assert(key != nil, "key is nil")
 //	assert(loader != nil, "loader is nil")
 //
@@ -126,14 +126,14 @@ func (my *CacheImpl) sendJob(job cacheJob) {
 //	}
 //
 //	// 以下代码需要考虑并发, 需要阻止重复加载
-//	var next *CacheFuture = nil
+//	var next *Future = nil
 //	futures.Lock()
 //	{
 //		last = futures.d[key]
 //		status = my.getFutureStatus(last)
 //		// 可能是empty, expired, rotted
 //		if status != kFutureGood {
-//			next = newCacheFuture()
+//			next = newFuture()
 //			futures.d[key] = next
 //			my.jobChan <- cacheJob{loader: loader, key: key, future: next}
 //		}
@@ -161,7 +161,7 @@ func (my *CacheImpl) removeRotted() {
 	}
 }
 
-func (my *CacheImpl) getFutureStatus(future *CacheFuture) int {
+func (my *CacheImpl) getFutureStatus(future *Future) int {
 	if future != nil {
 		var updateTime = future.getUpdateTime()
 		var past = time.Now().Sub(updateTime)

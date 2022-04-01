@@ -14,32 +14,32 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type CacheFuture struct {
+type Future struct {
 	value      interface{}
 	err        error
 	updateTime unsafe.Pointer
 	wg         sync.WaitGroup
 }
 
-func newCacheFuture() *CacheFuture {
-	var item = &CacheFuture{}
+func newFuture() *Future {
+	var item = &Future{}
 	atomic.StorePointer(&item.updateTime, unsafe.Pointer(&time.Time{}))
 	item.wg.Add(1)
 	return item
 }
 
-func (my *CacheFuture) Get1() interface{} {
+func (my *Future) Get1() interface{} {
 	my.wg.Wait()
 	return my.value
 }
 
-func (my *CacheFuture) Get2() (interface{}, error) {
+func (my *Future) Get2() (interface{}, error) {
 	my.wg.Wait()
 	return my.value, my.err
 }
 
 // 这个方法只会被调用一次
-func (my *CacheFuture) setValue(value interface{}, err error) {
+func (my *Future) setValue(value interface{}, err error) {
 	my.value = value
 	my.err = err
 
@@ -48,7 +48,7 @@ func (my *CacheFuture) setValue(value interface{}, err error) {
 	my.wg.Done()
 }
 
-func (my *CacheFuture) getUpdateTime() time.Time {
+func (my *Future) getUpdateTime() time.Time {
 	var p = (*time.Time)(atomic.LoadPointer(&my.updateTime))
 	if p != nil {
 		return *p
