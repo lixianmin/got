@@ -16,7 +16,13 @@ Copyright (C) - All Rights Reserved
 
 func TestGet(t *testing.T) {
 	var url = "http://www.baidu.com"
-	var result, err = Get(url, WithTimeout(time.Second*2))
+	var result, err = Get(url, WithTimeout(time.Second*2), WithRequestBuilder(func(request *http.Request) string {
+		var query = request.URL.Query()
+		query.Add("wd", "hello")
+		var payload = query.Encode()
+
+		return payload
+	}))
 	fmt.Printf("result=%s, err=%q", result, err)
 }
 
