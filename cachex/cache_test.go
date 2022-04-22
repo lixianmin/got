@@ -58,7 +58,7 @@ func TestCache_Load(t *testing.T) {
 	fmt.Printf("f1=%d, f2=%d, f3=%d, f4=%d, f5=%d\n", f1.Get1(), f2.Get1(), f3.Get1(), f4.Get1(), f5.Get1())
 	fmt.Printf("cost time = %s\n", time.Now().Sub(start).String())
 
-	//time.Sleep(time.Minute)
+	time.Sleep(time.Minute)
 	//time.Sleep(time.Minute)
 }
 
@@ -153,4 +153,31 @@ func TestCacheFinalizer(t *testing.T) {
 
 	runtime.GC()
 	time.Sleep(1 * time.Second)
+}
+
+func TestCache_Predecessor(t *testing.T) {
+	var cache = NewCache(WithParallel(4), WithExpire(2*time.Millisecond, time.Millisecond))
+
+	var f1 = cache.Load(1, func(key interface{}) (interface{}, error) {
+		return 1, nil
+	}).Get1()
+
+	time.Sleep(3 * time.Millisecond)
+	var f2 = cache.Load(1, func(key interface{}) (interface{}, error) {
+		return 2, nil
+	}).Get1()
+
+	var f3 = cache.Load(1, func(key interface{}) (interface{}, error) {
+		return 3, nil
+	}).Get1()
+
+	time.Sleep(2 * time.Millisecond)
+	var f4 = cache.Load(1, func(key interface{}) (interface{}, error) {
+		return 4, nil
+	}).Get1()
+
+	fmt.Printf("f1=%d, f2=%d, f3=%d, f4=%d \n", f1, f2, f3, f4)
+	if f1 != 1 || f2 != 1 || f3 != 1 || f4 != 2 {
+		t.Fatal()
+	}
 }

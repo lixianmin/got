@@ -15,15 +15,18 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type Future struct {
-	value      interface{}
-	err        error
-	updateTime unsafe.Pointer
-	wg         sync.WaitGroup
+	value       interface{}
+	err         error
+	updateTime  unsafe.Pointer
+	predecessor unsafe.Pointer
+	wg          sync.WaitGroup
 }
 
-func newFuture() *Future {
+func newFuture(predecessor *Future) *Future {
 	var item = &Future{}
 	atomic.StorePointer(&item.updateTime, unsafe.Pointer(&time.Time{}))
+	atomic.StorePointer(&item.predecessor, unsafe.Pointer(predecessor))
+
 	item.wg.Add(1)
 	return item
 }
@@ -45,6 +48,8 @@ func (my *Future) setValue(value interface{}, err error) {
 
 	var now = time.Now()
 	atomic.StorePointer(&my.updateTime, unsafe.Pointer(&now))
+	atomic.StorePointer(&my.predecessor, nil)
+
 	my.wg.Done()
 }
 
@@ -55,4 +60,9 @@ func (my *Future) getUpdateTime() time.Time {
 	}
 
 	return time.Time{}
+}
+
+func (my *Future) getPredecessor() *Future {
+	var p = (*Future)(atomic.LoadPointer(&my.predecessor))
+	return p
 }

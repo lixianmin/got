@@ -15,9 +15,9 @@ Copyright (C) - All Rights Reserved
 
 const (
 	kFutureEmpty   = iota // 无, 则new&load, 返回new
-	kFutureGood           // 有 & 可用, 返回old
-	kFutureExpired        // 有 & 过期, new&load, 返回old
-	kFutureRotted         // 有 & rotted, new&load, 返回new
+	kFutureGood           // 有 & 可用, 返回last
+	kFutureExpired        // 有 & 过期, new & load, 返回 last
+	kFutureRotted         // 有 & rotted, new & load, 返回 new
 )
 
 var cacheSharding = loom.NewSharding()
@@ -82,21 +82,39 @@ func (my *cacheImpl) Load(key interface{}, loader Loader) *Future {
 	// 以下代码需要考虑并发, 需要阻止重复加载
 	futures.Lock()
 	var last = futures.d[key]
-	var status = my.getFutureStatus(last)
-	// 可能是empty, expired, rotted
+	var lastStatus = my.getFutureStatus(last)
 	// todo 如果是expired的future, 本次会返回last, 但立马会把next写入, 下次就会是good状态但未加载完的对象了
-	if status != kFutureGood {
-		next = newFuture()
+
+	// 可能是empty, expired, rotted
+	if lastStatus != kFutureGood {
+		var predecessor *Future = nil
+		if lastStatus == kFutureExpired { // 只有处于expired状态的last才有资格当作predecessor
+			predecessor = last
+		}
+
+		next = newFuture(predecessor)
 		futures.d[key] = next
 		my.sendJob(cacheJob{loader: loader, key: key, future: next})
 	}
 	futures.Unlock()
 
-	// 如果仅仅是expired, 但没到rotted状态, 则返回last, Get1()凑合用不用等IO
-	if status == kFutureGood || status == kFutureExpired {
+	//fmt.Printf("lastStatus=%v \n", lastStatus)
+	switch lastStatus {
+	case kFutureGood: // lastStatus == good: 意味着last本身还没有加载完呢, 所以不会创建next, 因此不可能返回next. 但是, 这个last有可能有可勉强使用的predecessor
+		var predecessor = last.getPredecessor()
+		var status = my.getFutureStatus(predecessor)
+		//fmt.Printf("status=%d \n", status)
+		if status == kFutureExpired {
+			return predecessor
+		}
 		return last
+	case kFutureExpired: // lastStatus == expired: 说明last还凑合着能用
+		return last
+	case kFutureRotted: // lastStatus == rotted: 说明last不能用了, 只能返回next
+		return next
 	}
 
+	// lastStatus == empty: 也就是没有last, 所以只能返回next
 	return next
 }
 
