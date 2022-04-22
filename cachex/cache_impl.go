@@ -81,15 +81,14 @@ func (my *cacheImpl) Load(key interface{}, loader Loader) *Future {
 
 	// 以下代码需要考虑并发, 需要阻止重复加载
 	futures.Lock()
-	var last = futures.d[key]
-	var lastStatus = my.getFutureStatus(last)
-	// todo 如果是expired的future, 本次会返回last, 但立马会把next写入, 下次就会是good状态但未加载完的对象了
+	var lastFuture = futures.d[key]
+	var lastStatus = my.getFutureStatus(lastFuture)
 
 	// 可能是empty, expired, rotted
 	if lastStatus != kFutureGood {
 		var predecessor *Future = nil
 		if lastStatus == kFutureExpired { // 只有处于expired状态的last才有资格当作predecessor
-			predecessor = last
+			predecessor = lastFuture
 		}
 
 		next = newFuture(predecessor)
@@ -101,15 +100,15 @@ func (my *cacheImpl) Load(key interface{}, loader Loader) *Future {
 	//fmt.Printf("lastStatus=%v \n", lastStatus)
 	switch lastStatus {
 	case kFutureGood: // lastStatus == good: 意味着last本身还没有加载完呢, 所以不会创建next, 因此不可能返回next. 但是, 这个last有可能有可勉强使用的predecessor
-		var predecessor = last.getPredecessor()
+		var predecessor = lastFuture.getPredecessor()
 		var status = my.getFutureStatus(predecessor)
 		//fmt.Printf("status=%d \n", status)
 		if status == kFutureExpired {
 			return predecessor
 		}
-		return last
+		return lastFuture
 	case kFutureExpired: // lastStatus == expired: 说明last还凑合着能用
-		return last
+		return lastFuture
 	case kFutureRotted: // lastStatus == rotted: 说明last不能用了, 只能返回next
 		return next
 	}
