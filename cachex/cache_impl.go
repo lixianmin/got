@@ -66,6 +66,43 @@ func (my *cacheImpl) startJobGoroutines() {
 	}
 }
 
+func (my *cacheImpl) Set(key interface{}, value interface{}) {
+	assert(key != nil, "key is nil")
+	var index, _ = cacheSharding.GetShardingIndex(key)
+	var futures = my.futures[index]
+
+	futures.Lock()
+	{
+		var next = newFuture(nil) // 直接设值, 没有加载过程, 所以也不需要predecessor
+		next.setValue(value, nil)
+		futures.d[key] = next
+	}
+	futures.Unlock()
+}
+
+func (my *cacheImpl) Get(key interface{}) interface{} {
+	assert(key != nil, "key is nil")
+	var index, _ = cacheSharding.GetShardingIndex(key)
+	var futures = my.futures[index]
+
+	// 以下代码需要考虑并发, 需要阻止重复加载
+	futures.Lock()
+	var future = futures.d[key]
+	futures.Unlock()
+
+	var status = my.getFutureStatus(future)
+	//fmt.Printf("status=%v \n", status)
+	switch status {
+	case kFutureGood: // status == good: 意味着future本身还没有加载完呢, 但这个future有可能有可勉强使用的predecessor
+		return my.fetchIfFutureStatusGood(future).Get1()
+	case kFutureExpired: // status == expired: 说明last还凑合着能用
+		return future.Get1()
+	}
+
+	// status == empty || status == rotted
+	return nil
+}
+
 // Load 设计考量：
 // 1. 如果缓存中有对应的Future对象，则直接返回
 // 2. Load()方法自己不会阻塞，直接返回Future对象
@@ -100,13 +137,7 @@ func (my *cacheImpl) Load(key interface{}, loader Loader) *Future {
 	//fmt.Printf("lastStatus=%v \n", lastStatus)
 	switch lastStatus {
 	case kFutureGood: // lastStatus == good: 意味着last本身还没有加载完呢, 所以不会创建next, 因此不可能返回next. 但是, 这个last有可能有可勉强使用的predecessor
-		var predecessor = lastFuture.getPredecessor()
-		var status = my.getFutureStatus(predecessor)
-		//fmt.Printf("status=%d \n", status)
-		if status == kFutureExpired {
-			return predecessor
-		}
-		return lastFuture
+		return my.fetchIfFutureStatusGood(lastFuture)
 	case kFutureExpired: // lastStatus == expired: 说明last还凑合着能用
 		return lastFuture
 	case kFutureRotted: // lastStatus == rotted: 说明last不能用了, 只能返回next
@@ -115,6 +146,18 @@ func (my *cacheImpl) Load(key interface{}, loader Loader) *Future {
 
 	// lastStatus == empty: 也就是没有last, 所以只能返回next
 	return next
+}
+
+// status == good: 意味着future本身还没有加载完呢, 但这个future有可能有可勉强使用的predecessor
+func (my *cacheImpl) fetchIfFutureStatusGood(future *Future) *Future {
+	var predecessor = future.getPredecessor()
+	var status = my.getFutureStatus(predecessor)
+	//fmt.Printf("status=%d \n", status)
+	if status == kFutureExpired {
+		return predecessor
+	}
+
+	return future
 }
 
 func (my *cacheImpl) sendJob(job cacheJob) {

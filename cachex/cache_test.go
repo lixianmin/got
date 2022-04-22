@@ -181,3 +181,20 @@ func TestCache_Predecessor(t *testing.T) {
 		t.Fatal()
 	}
 }
+
+func TestCache_GetSet(t *testing.T) {
+	var cache = NewCache(WithExpire(2*time.Millisecond, time.Millisecond))
+	cache.Set(1, 1)
+	var f1 = cache.Get(1)
+
+	time.Sleep(3 * time.Millisecond)
+	var f2 = cache.Get(1)
+
+	time.Sleep(2 * time.Millisecond)
+	var f3 = cache.Get(1)
+
+	fmt.Printf("f1=%v, f2=%v, f3=%v \n", f1, f2, f3)
+	if f1 != 1 || f2 != 1 || f3 != nil {
+		t.Fatal()
+	}
+}

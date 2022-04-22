@@ -16,6 +16,8 @@ type Loader = func(key interface{}) (interface{}, error)
 
 type Cache interface {
 	Load(key interface{}, loader Loader) *Future
+	Set(key interface{}, value interface{})
+	Get(key interface{}) interface{}
 }
 
 type wrapper struct {
