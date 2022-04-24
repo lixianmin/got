@@ -16,7 +16,7 @@ type Loader = func(key interface{}) (interface{}, error)
 
 type Cache interface {
 	Load(key interface{}, loader Loader) *Future
-	Set(key interface{}, value interface{})
+	Set(key interface{}, value interface{}, err error)
 	Get(key interface{}) interface{}
 }
 

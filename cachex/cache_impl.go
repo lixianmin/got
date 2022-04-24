@@ -66,7 +66,8 @@ func (my *cacheImpl) startJobGoroutines() {
 	}
 }
 
-func (my *cacheImpl) Set(key interface{}, value interface{}) {
+// Set 通常value和err只有一个值是有效的. value有效意味着是正常值, err有效意味着是错误值
+func (my *cacheImpl) Set(key interface{}, value interface{}, err error) {
 	assert(key != nil, "key is nil")
 	var index, _ = cacheSharding.GetShardingIndex(key)
 	var futures = my.futures[index]
@@ -74,7 +75,7 @@ func (my *cacheImpl) Set(key interface{}, value interface{}) {
 	futures.Lock()
 	{
 		var next = newFuture(nil) // 直接设值, 没有加载过程, 所以也不需要predecessor
-		next.setValue(value, nil)
+		next.setValue(value, err)
 		futures.d[key] = next
 	}
 	futures.Unlock()
