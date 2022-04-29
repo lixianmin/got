@@ -1,6 +1,7 @@
 package taskx
 
 import (
+	"github.com/lixianmin/got/std"
 	"time"
 )
 
@@ -19,29 +20,27 @@ var globalTaskDelayedQueue = newTaskDelayedQueue()
 
 type TaskHandler func(args interface{}) (interface{}, error)
 
-type ITask interface {
-	Do(args interface{}) error
-	Get1() interface{}
-	Get2() (interface{}, error)
-}
-
 type TaskQueue struct {
 	closeChan chan struct{}
-	C         chan ITask
+	C         chan Task
+	errLogger std.Logger
 }
 
 func NewTaskQueue(options ...Option) *TaskQueue {
 	var opts = createOptions(options)
 	var my = &TaskQueue{
-		closeChan: opts.CloseChan,
-		C:         make(chan ITask, opts.Size),
+		closeChan: opts.closeChan,
+		C:         make(chan Task, opts.size),
+		errLogger: opts.errLogger,
 	}
 
 	return my
 }
 
-func (my *TaskQueue) SendTask(task ITask) ITask {
+func (my *TaskQueue) SendTask(task Task) Task {
 	if task != nil {
+		my.checkTaskQueueFull()
+
 		select {
 		case <-my.closeChan:
 		case my.C <- task:
@@ -51,13 +50,14 @@ func (my *TaskQueue) SendTask(task ITask) ITask {
 	return task
 }
 
-func (my *TaskQueue) SendCallback(handler TaskHandler) ITask {
+func (my *TaskQueue) SendCallback(handler TaskHandler) Task {
 	if handler == nil {
 		return taskEmpty{}
 	}
 
 	var task = &taskCallback{handler: handler}
 	task.wg.Add(1)
+	my.checkTaskQueueFull()
 
 	select {
 	case <-my.closeChan:
@@ -74,4 +74,11 @@ func (my *TaskQueue) SendDelayed(delayed time.Duration, handler TaskHandler) {
 
 	var task = newTaskDelayed(my, delayed, handler)
 	globalTaskDelayedQueue.PushTask(task)
+}
+
+func (my *TaskQueue) checkTaskQueueFull() {
+	var length = len(my.C)
+	if length == cap(my.C) {
+		my.errLogger.Printf("taskQueue is full, length=%d", length)
+	}
 }

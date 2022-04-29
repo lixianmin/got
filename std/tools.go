@@ -9,7 +9,7 @@ Copyright (C) - All Rights Reserved
 
 import "reflect"
 
-// 方法中传入指针时，直接使用 if i == nil {} 是无法判断是不为nil的
+// IsNil 方法中传入指针时，直接使用 if i == nil {} 是无法判断是不为nil的
 func IsNil(i interface{}) bool {
 	if i == nil {
 		return true

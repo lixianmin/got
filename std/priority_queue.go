@@ -17,7 +17,7 @@ type Comparable interface {
 
 type sorter []Comparable
 
-// Implement heap.Interface: Push, Pop, Len, Less, Swap
+// Push Implement heap.Interface: Push, Pop, Len, Less, Swap
 func (s *sorter) Push(x interface{}) {
 	*s = append(*s, x.(Comparable))
 }
