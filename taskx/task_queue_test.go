@@ -1,7 +1,8 @@
-package loom
+package taskx
 
 import (
 	"fmt"
+	"github.com/lixianmin/got/loom"
 	"testing"
 	"time"
 )
@@ -14,7 +15,7 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 func TestNewTaskQueue(t *testing.T) {
-	var wc WaitClose
+	var wc loom.WaitClose
 	var tasks = NewTaskQueue(WithSize(8), WithCloseChan(wc.C()))
 
 	type Fetus struct {

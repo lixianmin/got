@@ -1,6 +1,7 @@
-package loom
+package taskx
 
 import (
+	"github.com/lixianmin/got/loom"
 	"github.com/lixianmin/got/std"
 	"time"
 )
@@ -21,11 +22,11 @@ func newTaskDelayedQueue() *taskDelayedQueue {
 		tasks: make(chan *taskDelayed, 128),
 	}
 
-	Go(my.goLoop)
+	loom.Go(my.goLoop)
 	return my
 }
 
-func (my *taskDelayedQueue) goLoop(later Later) {
+func (my *taskDelayedQueue) goLoop(later loom.Later) {
 	var ticker = later.NewTicker(1000 * time.Millisecond)
 	var pq = std.NewPriorityQueue(32)
 
