@@ -62,7 +62,7 @@ func WithCloseChan(c chan struct{}) Option {
 	}
 }
 
-func WithErrorLogger(logger std.Logger) Option {
+func WithErrorLogger(logger std.LoggerFunc) Option {
 	return func(opts *options) {
 		if logger != nil {
 			opts.errLogger = logger

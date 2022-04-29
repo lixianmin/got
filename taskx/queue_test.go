@@ -3,7 +3,6 @@ package taskx
 import (
 	"fmt"
 	"github.com/lixianmin/got/loom"
-	"github.com/lixianmin/got/std"
 	"testing"
 	"time"
 )
@@ -17,9 +16,9 @@ Copyright (C) - All Rights Reserved
 
 func TestNewTaskQueue(t *testing.T) {
 	var wc loom.WaitClose
-	var tasks = NewQueue(WithSize(8), WithCloseChan(wc.C()), WithErrorLogger(std.LoggerFunc(func(format string, args ...interface{}) {
+	var tasks = NewQueue(WithSize(8), WithCloseChan(wc.C()), WithErrorLogger(func(format string, args ...interface{}) {
 		fmt.Printf(format, args...)
-	})))
+	}))
 
 	type Fetus struct {
 		counter int
