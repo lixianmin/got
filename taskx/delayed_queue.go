@@ -13,12 +13,12 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type taskDelayedQueue struct {
+type delayedQueue struct {
 	tasks chan *taskDelayed
 }
 
-func newTaskDelayedQueue() *taskDelayedQueue {
-	var my = &taskDelayedQueue{
+func newDelayedQueue() *delayedQueue {
+	var my = &delayedQueue{
 		tasks: make(chan *taskDelayed, 128),
 	}
 
@@ -26,7 +26,7 @@ func newTaskDelayedQueue() *taskDelayedQueue {
 	return my
 }
 
-func (my *taskDelayedQueue) goLoop(later loom.Later) {
+func (my *delayedQueue) goLoop(later loom.Later) {
 	var ticker = later.NewTicker(1000 * time.Millisecond)
 	var pq = std.NewPriorityQueue(32)
 
@@ -50,6 +50,6 @@ func (my *taskDelayedQueue) goLoop(later loom.Later) {
 	}
 }
 
-func (my *taskDelayedQueue) PushTask(task *taskDelayed) {
+func (my *delayedQueue) PushTask(task *taskDelayed) {
 	my.tasks <- task
 }

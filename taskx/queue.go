@@ -16,19 +16,19 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-var globalTaskDelayedQueue = newTaskDelayedQueue()
+var globalDelayedQueue = newDelayedQueue()
 
-type TaskHandler func(args interface{}) (interface{}, error)
+type Handler func(args interface{}) (interface{}, error)
 
-type TaskQueue struct {
+type Queue struct {
 	closeChan chan struct{}
 	C         chan Task
 	errLogger std.Logger
 }
 
-func NewTaskQueue(options ...Option) *TaskQueue {
+func NewQueue(options ...Option) *Queue {
 	var opts = createOptions(options)
-	var my = &TaskQueue{
+	var my = &Queue{
 		closeChan: opts.closeChan,
 		C:         make(chan Task, opts.size),
 		errLogger: opts.errLogger,
@@ -37,9 +37,9 @@ func NewTaskQueue(options ...Option) *TaskQueue {
 	return my
 }
 
-func (my *TaskQueue) SendTask(task Task) Task {
+func (my *Queue) SendTask(task Task) Task {
 	if task != nil {
-		my.checkTaskQueueFull()
+		my.checkQueueFull()
 
 		select {
 		case <-my.closeChan:
@@ -50,14 +50,14 @@ func (my *TaskQueue) SendTask(task Task) Task {
 	return task
 }
 
-func (my *TaskQueue) SendCallback(handler TaskHandler) Task {
+func (my *Queue) SendCallback(handler Handler) Task {
 	if handler == nil {
 		return taskEmpty{}
 	}
 
 	var task = &taskCallback{handler: handler}
 	task.wg.Add(1)
-	my.checkTaskQueueFull()
+	my.checkQueueFull()
 
 	select {
 	case <-my.closeChan:
@@ -67,16 +67,16 @@ func (my *TaskQueue) SendCallback(handler TaskHandler) Task {
 	return task
 }
 
-func (my *TaskQueue) SendDelayed(delayed time.Duration, handler TaskHandler) {
+func (my *Queue) SendDelayed(delayed time.Duration, handler Handler) {
 	if handler == nil {
 		return
 	}
 
 	var task = newTaskDelayed(my, delayed, handler)
-	globalTaskDelayedQueue.PushTask(task)
+	globalDelayedQueue.PushTask(task)
 }
 
-func (my *TaskQueue) checkTaskQueueFull() {
+func (my *Queue) checkQueueFull() {
 	var length = len(my.C)
 	if length == cap(my.C) {
 		my.errLogger.Printf("taskQueue is full, length=%d", length)

@@ -17,7 +17,7 @@ Copyright (C) - All Rights Reserved
 
 func TestNewTaskQueue(t *testing.T) {
 	var wc loom.WaitClose
-	var tasks = NewTaskQueue(WithSize(8), WithCloseChan(wc.C()), WithErrorLogger(std.LoggerFunc(func(format string, args ...interface{}) {
+	var tasks = NewQueue(WithSize(8), WithCloseChan(wc.C()), WithErrorLogger(std.LoggerFunc(func(format string, args ...interface{}) {
 		fmt.Printf(format, args...)
 	})))
 
@@ -67,7 +67,7 @@ func TestNewTaskQueue(t *testing.T) {
 }
 
 func TestTaskQueue_SendDelayed(t *testing.T) {
-	var tasks = NewTaskQueue()
+	var tasks = NewQueue()
 	var closeChan = make(chan struct{})
 	var delayedTime = 5 * time.Second
 	var startTime = time.Now()

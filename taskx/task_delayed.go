@@ -10,12 +10,12 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type taskDelayed struct {
-	queue       *TaskQueue  // 任务所在的TaskQueue
-	handler     TaskHandler // handler
-	triggerTime int64       // 触发任务的时间戳
+	queue       *Queue  // 任务所在的TaskQueue
+	handler     Handler // handler
+	triggerTime int64   // 触发任务的时间戳
 }
 
-func newTaskDelayed(queue *TaskQueue, delayed time.Duration, handler TaskHandler) *taskDelayed {
+func newTaskDelayed(queue *Queue, delayed time.Duration, handler Handler) *taskDelayed {
 	var task = &taskDelayed{
 		queue:       queue,
 		handler:     handler,
