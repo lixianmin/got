@@ -184,7 +184,7 @@ func TestCache_Predecessor(t *testing.T) {
 
 func TestCache_GetSet(t *testing.T) {
 	var cache = NewCache(WithExpire(2*time.Millisecond, time.Millisecond))
-	cache.Set(1, 1)
+	cache.Set(1, 1, nil)
 	var f1 = cache.Get(1)
 
 	time.Sleep(3 * time.Millisecond)

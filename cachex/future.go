@@ -41,7 +41,7 @@ func (my *Future) Get2() (interface{}, error) {
 	return my.value, my.err
 }
 
-// 这个方法只会被调用一次
+// 这个方法只会被调用一次, 这个特别重要, 因为wg.Done()如果调用2次会panic
 func (my *Future) setValue(value interface{}, err error) {
 	my.value = value
 	my.err = err
