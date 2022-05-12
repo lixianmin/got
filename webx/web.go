@@ -42,9 +42,9 @@ func Request(ctx context.Context, method string, url string, options ...Option) 
 	var payload = opts.RequestBuilder(request)
 	if payload != "" {
 		switch method {
-		case "GET":
+		case http.MethodGet:
 			request.URL.RawQuery = payload
-		case "POST":
+		case http.MethodPost:
 			request.Body = ioutil.NopCloser(strings.NewReader(payload))
 		}
 	}
