@@ -54,3 +54,12 @@ func TestPostJson(t *testing.T) {
 
 	fmt.Printf("result=%s, err=%q", result, err)
 }
+
+//func TestGet2(t *testing.T) {
+//	var url = "http://172.24.222.163:8888/hello"
+//	var ctx, cancel = context.WithTimeout(context.Background(), 920*time.Millisecond)
+//	defer cancel()
+//
+//	var result, err = Request(ctx, http.MethodGet, url)
+//	fmt.Printf("result=%s, err=%q", result, err)
+//}

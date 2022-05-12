@@ -14,14 +14,6 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-//func CopyHeader(dst, src http.Header) {
-//	for k, vv := range src {
-//		for _, v := range vv {
-//			dst.Add(k, v)
-//		}
-//	}
-//}
-
 func Get(url string, options ...Option) ([]byte, error) {
 	return Request(context.Background(), http.MethodGet, url, options...)
 }
@@ -33,9 +25,14 @@ func Post(url string, options ...Option) ([]byte, error) {
 func Request(ctx context.Context, method string, url string, options ...Option) ([]byte, error) {
 	var opts = createOptions(options)
 
-	request, err := http.NewRequestWithContext(ctx, method, url, nil)
-	if err != nil {
-		return nil, err
+	// 讲道理, 无论是在http.Client{}中设置Timeout, 还是设置具备超时的ctx, 都是起作用的. 实测发现它们返回的err不一样
+	// 现在遇到的问题是: 在设置http.Client{}的Timeout时, 请求仍然可能会超过很长时间, 因此现在尝试使用ctx的方案, 看看是否可以避免这个问题
+	var ctx1, cancel = context.WithTimeout(ctx, opts.Timeout)
+	defer cancel()
+
+	request, err1 := http.NewRequestWithContext(ctx1, method, url, nil)
+	if err1 != nil {
+		return nil, err1
 	}
 
 	// 重新配置request
@@ -53,14 +50,14 @@ func Request(ctx context.Context, method string, url string, options ...Option) 
 		Timeout: opts.Timeout,
 	}
 
-	response, err := client.Do(request)
-	if err != nil {
-		return nil, err
+	response, err2 := client.Do(request)
+	if err2 != nil {
+		return nil, err2
 	}
 
 	var responseBody = response.Body
 	defer responseBody.Close()
 
-	bodyBytes, err := ioutil.ReadAll(responseBody)
-	return bodyBytes, err
+	bodyBytes, err3 := ioutil.ReadAll(responseBody)
+	return bodyBytes, err3
 }
