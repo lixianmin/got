@@ -7,7 +7,7 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-func MinInt32(a int32, b int32) int32 {
+func MinI32(a int32, b int32) int32 {
 	if a > b {
 		return b
 	}
@@ -15,7 +15,7 @@ func MinInt32(a int32, b int32) int32 {
 	return a
 }
 
-func MinInt64(a int64, b int64) int64 {
+func MinI64(a int64, b int64) int64 {
 	if a > b {
 		return b
 	}
@@ -23,7 +23,7 @@ func MinInt64(a int64, b int64) int64 {
 	return a
 }
 
-func MinInt(a int, b int) int {
+func MinI(a int, b int) int {
 	if a > b {
 		return b
 	}
@@ -31,7 +31,7 @@ func MinInt(a int, b int) int {
 	return a
 }
 
-func MaxInt(a int, b int) int {
+func MaxI(a int, b int) int {
 	if a < b {
 		return b
 	}
@@ -39,15 +39,7 @@ func MaxInt(a int, b int) int {
 	return a
 }
 
-func MaxInt32(a int32, b int32) int32 {
-	if a < b {
-		return b
-	}
-	
-	return a
-}
-
-func MaxInt64(a int64, b int64) int64 {
+func MaxI32(a int32, b int32) int32 {
 	if a < b {
 		return b
 	}
@@ -55,7 +47,15 @@ func MaxInt64(a int64, b int64) int64 {
 	return a
 }
 
-func ClampInt32(i int32, a int32, b int32) int32 {
+func MaxI64(a int64, b int64) int64 {
+	if a < b {
+		return b
+	}
+
+	return a
+}
+
+func ClampI32(i, a, b int32) int32 {
 	if i < a {
 		return a
 	} else if a > b {
@@ -65,7 +65,7 @@ func ClampInt32(i int32, a int32, b int32) int32 {
 	}
 }
 
-func ClampInt64(i int64, a int64, b int64) int64 {
+func ClampI64(i, a, b int64) int64 {
 	if i < a {
 		return a
 	} else if a > b {
@@ -75,7 +75,7 @@ func ClampInt64(i int64, a int64, b int64) int64 {
 	}
 }
 
-func ClampInt(i int, a int, b int) int {
+func ClampI(i, a, b int) int {
 	if i < a {
 		return a
 	} else if a > b {
@@ -85,7 +85,17 @@ func ClampInt(i int, a int, b int) int {
 	}
 }
 
-func Clampf64(f float64, a float64, b float64) float64 {
+func ClampF32(f, a, b float32) float32 {
+	if f < a {
+		return a
+	} else if a > b {
+		return b
+	} else {
+		return f
+	}
+}
+
+func ClampF64(f, a, b float64) float64 {
 	if f < a {
 		return a
 	} else if a > b {
