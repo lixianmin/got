@@ -55,51 +55,51 @@ func MaxI64(a int64, b int64) int64 {
 	return a
 }
 
-func ClampI32(i, a, b int32) int32 {
-	if i < a {
-		return a
-	} else if a > b {
-		return b
+func ClampI32(i, min, max int32) int32 {
+	if i < min {
+		return min
+	} else if min > max {
+		return max
 	} else {
 		return i
 	}
 }
 
-func ClampI64(i, a, b int64) int64 {
-	if i < a {
-		return a
-	} else if a > b {
-		return b
+func ClampI64(i, min, max int64) int64 {
+	if i < min {
+		return min
+	} else if min > max {
+		return max
 	} else {
 		return i
 	}
 }
 
-func ClampI(i, a, b int) int {
-	if i < a {
-		return a
-	} else if a > b {
-		return b
+func ClampI(i, min, max int) int {
+	if i < min {
+		return min
+	} else if min > max {
+		return max
 	} else {
 		return i
 	}
 }
 
-func ClampF32(f, a, b float32) float32 {
-	if f < a {
-		return a
-	} else if a > b {
-		return b
+func ClampF32(f, min, max float32) float32 {
+	if f < min {
+		return min
+	} else if min > max {
+		return max
 	} else {
 		return f
 	}
 }
 
-func ClampF64(f, a, b float64) float64 {
-	if f < a {
-		return a
-	} else if a > b {
-		return b
+func ClampF64(f, min, max float64) float64 {
+	if f < min {
+		return min
+	} else if min > max {
+		return max
 	} else {
 		return f
 	}
