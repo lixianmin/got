@@ -44,7 +44,7 @@ func NewCache(opts ...Option) Cache {
 	// 参考: https://zhuanlan.zhihu.com/p/76504936
 	runtime.SetFinalizer(my, func(w *wrapper) {
 		w.gcTicker.Stop()
-		close(w.closeChan)
+		close(w.closeChan) // 这里必须使用w.closeChan, 而不能使用my.closeChan, 否则runtime.GC()执行不到这里
 		//fmt.Println("finalized")
 	})
 	return my

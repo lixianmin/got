@@ -3,6 +3,7 @@ package ants
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -15,7 +16,7 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 func TestPool_Send(t *testing.T) {
-	var pool = New(8)
+	var pool = NewPool(WithSize(8))
 
 	var ctx, _ = context.WithTimeout(context.TODO(), time.Second)
 	var task = pool.Send(ctx, func() (interface{}, error) {
@@ -25,4 +26,5 @@ func TestPool_Send(t *testing.T) {
 
 	_, err := task.Get2()
 	fmt.Println(err)
+	runtime.GC()
 }

@@ -9,8 +9,6 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type Handler func() (interface{}, error)
-
 type taskCallback struct {
 	ctx     context.Context
 	handler Handler
