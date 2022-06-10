@@ -1,0 +1,28 @@
+package ants
+
+import (
+	"context"
+	"fmt"
+	"testing"
+	"time"
+)
+
+/********************************************************************
+created:    2022-06-10
+author:     lixianmin
+
+Copyright (C) - All Rights Reserved
+*********************************************************************/
+
+func TestPool_Send(t *testing.T) {
+	var pool = New(8)
+
+	var ctx, _ = context.WithTimeout(context.TODO(), time.Second)
+	var task = pool.Send(ctx, func() (interface{}, error) {
+		time.Sleep(time.Second / 2)
+		return nil, nil
+	})
+
+	_, err := task.Get2()
+	fmt.Println(err)
+}
