@@ -1,7 +1,5 @@
 package ants
 
-import "runtime"
-
 /********************************************************************
 created:    2022-06-10
 author:     lixianmin
@@ -17,7 +15,7 @@ type Option func(*options)
 
 func createOptions(optionList []Option) options {
 	var opts = options{
-		size: runtime.NumCPU(),
+		size: 1,
 	}
 
 	for _, opt := range optionList {
