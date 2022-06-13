@@ -41,8 +41,7 @@ func (my *poolImpl) goDispatch() {
 	for {
 		select {
 		case task := <-my.taskChan:
-			task.result, task.err = task.handler()
-			close(task.doneChan)
+			task.run()
 		case <-my.closeChan:
 			return
 		}

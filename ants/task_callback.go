@@ -41,3 +41,8 @@ func (my *taskCallback) Get2() (interface{}, error) {
 		return my.result, my.err
 	}
 }
+
+func (my *taskCallback) run() {
+	defer close(my.doneChan)
+	my.result, my.err = my.handler()
+}
