@@ -42,7 +42,7 @@ func (my *poolImpl) goDispatch() {
 		select {
 		case task := <-my.taskChan:
 			task.result, task.err = task.handler()
-			task.doneChan <- struct{}{}
+			close(task.doneChan)
 		case <-my.closeChan:
 			return
 		}

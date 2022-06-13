@@ -28,3 +28,16 @@ func TestPool_Send(t *testing.T) {
 	fmt.Println(err)
 	runtime.GC()
 }
+
+func TestPool_Send2(t *testing.T) {
+	var pool = NewPool(WithSize(8))
+
+	var task = pool.Send(context.Background(), func() (interface{}, error) {
+		time.Sleep(time.Second / 2)
+		return nil, nil
+	})
+
+	task.Get1()
+	task.Get1()
+	task.Get1()
+}

@@ -22,7 +22,7 @@ func newTaskCallback(ctx context.Context, handler Handler) *taskCallback {
 	var my = &taskCallback{
 		ctx:      ctx,
 		handler:  handler,
-		doneChan: make(chan struct{}, 1),
+		doneChan: make(chan struct{}),
 	}
 
 	return my
