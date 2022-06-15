@@ -18,11 +18,10 @@ Copyright (C) - All Rights Reserved
 func TestPool_Send(t *testing.T) {
 	var pool = NewPool(WithSize(8))
 
-	var ctx, _ = context.WithTimeout(context.TODO(), time.Second)
-	var task = pool.Send(ctx, func() (interface{}, error) {
+	var task = pool.Send(func(ctx context.Context) (interface{}, error) {
 		time.Sleep(time.Second / 2)
 		return nil, nil
-	})
+	}, WithTimeout(time.Second))
 
 	_, err := task.Get2()
 	fmt.Println(err)
@@ -31,11 +30,14 @@ func TestPool_Send(t *testing.T) {
 
 func TestPool_Send2(t *testing.T) {
 	var pool = NewPool(WithSize(8))
+	var counter = 0
+	var task = pool.Send(func(ctx context.Context) (interface{}, error) {
+		counter++
+		fmt.Println(counter)
 
-	var task = pool.Send(context.Background(), func() (interface{}, error) {
-		time.Sleep(time.Second / 2)
+		time.Sleep(time.Second)
 		return nil, nil
-	})
+	}, WithTimeout(time.Second), WithRetry(3))
 
 	task.Get1()
 	task.Get1()

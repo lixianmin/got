@@ -12,18 +12,18 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type Handler func() (interface{}, error)
+type Handler func(ctx context.Context) (interface{}, error)
 
 type Pool interface {
-	Send(ctx context.Context, handler Handler) Task
+	Send(handler Handler, options ...TaskOption) Task
 }
 
 type wrapper struct {
 	*poolImpl
 }
 
-func NewPool(options ...Option) Pool {
-	var opts = createOptions(options)
+func NewPool(options ...PoolOption) Pool {
+	var opts = createPoolOptions(options)
 
 	var my = &wrapper{&poolImpl{
 		taskChan:  make(chan *taskCallback, opts.size),

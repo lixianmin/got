@@ -1,6 +1,9 @@
 package ants
 
-import "context"
+import (
+	"context"
+	"sync"
+)
 
 /********************************************************************
 created:    2021-04-29
@@ -10,39 +13,46 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type taskCallback struct {
-	ctx     context.Context
+	taskOptions
 	handler Handler
 
-	result   interface{}
-	err      error
-	doneChan chan struct{}
+	result interface{}
+	err    error
+	wg     sync.WaitGroup
 }
 
-func newTaskCallback(ctx context.Context, handler Handler) *taskCallback {
+func newTaskCallback(handler Handler, opts taskOptions) *taskCallback {
 	var my = &taskCallback{
-		ctx:      ctx,
-		handler:  handler,
-		doneChan: make(chan struct{}),
+		taskOptions: opts,
+		handler:     handler,
 	}
 
+	my.wg.Add(1)
 	return my
 }
 
 func (my *taskCallback) Get1() interface{} {
-	var result, _ = my.Get2()
-	return result
+	my.wg.Wait()
+	return my.result
 }
 
 func (my *taskCallback) Get2() (interface{}, error) {
-	select {
-	case <-my.ctx.Done():
-		return nil, context.DeadlineExceeded
-	case <-my.doneChan:
-		return my.result, my.err
-	}
+	my.wg.Wait()
+	return my.result, my.err
 }
 
 func (my *taskCallback) run() {
-	defer close(my.doneChan)
-	my.result, my.err = my.handler()
+	defer my.wg.Done()
+
+	for i := 0; i < my.retry; i++ {
+		func() {
+			var ctx, cancel = context.WithTimeout(context.Background(), my.timeout)
+			defer cancel()
+
+			my.result, my.err = my.handler(ctx)
+			if my.err == nil {
+				return
+			}
+		}()
+	}
 }

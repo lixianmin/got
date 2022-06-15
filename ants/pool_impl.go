@@ -1,7 +1,6 @@
 package ants
 
 import (
-	"context"
 	"github.com/lixianmin/got/loom"
 )
 
@@ -17,16 +16,13 @@ type poolImpl struct {
 	closeChan chan struct{}
 }
 
-func (my *poolImpl) Send(ctx context.Context, handler Handler) Task {
-	if ctx == nil {
-		panic("ctx is nil")
-	}
-
+func (my *poolImpl) Send(handler Handler, options ...TaskOption) Task {
 	if handler == nil {
 		panic("handler is nil")
 	}
 
-	var task = newTaskCallback(ctx, handler)
+	var opts = createTaskOptions(options)
+	var task = newTaskCallback(handler, opts)
 	select {
 	case my.taskChan <- task:
 	case <-my.closeChan:

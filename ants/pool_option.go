@@ -7,14 +7,14 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type options struct {
+type poolOptions struct {
 	size int
 }
 
-type Option func(*options)
+type PoolOption func(*poolOptions)
 
-func createOptions(optionList []Option) options {
-	var opts = options{
+func createPoolOptions(optionList []PoolOption) poolOptions {
+	var opts = poolOptions{
 		size: 1,
 	}
 
@@ -25,8 +25,8 @@ func createOptions(optionList []Option) options {
 	return opts
 }
 
-func WithSize(size int) Option {
-	return func(opts *options) {
+func WithSize(size int) PoolOption {
+	return func(opts *poolOptions) {
 		if size > 0 {
 			opts.size = size
 		}
