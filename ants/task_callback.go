@@ -45,14 +45,16 @@ func (my *taskCallback) run() {
 	defer my.wg.Done()
 
 	for i := 0; i < my.retry; i++ {
-		func() {
-			var ctx, cancel = context.WithTimeout(context.Background(), my.timeout)
-			defer cancel()
-
-			my.result, my.err = my.handler(ctx)
-			if my.err == nil {
-				return
-			}
-		}()
+		if my.runOnce() == nil {
+			return
+		}
 	}
+}
+
+func (my *taskCallback) runOnce() error {
+	var ctx, cancel = context.WithTimeout(context.Background(), my.timeout)
+	defer cancel()
+
+	my.result, my.err = my.handler(ctx)
+	return my.err
 }

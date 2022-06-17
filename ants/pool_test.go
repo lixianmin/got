@@ -29,6 +29,7 @@ func TestPool_Send(t *testing.T) {
 }
 
 func TestPool_Send2(t *testing.T) {
+	const retry = 3
 	var pool = NewPool(WithSize(8))
 	var counter = 0
 	var task = pool.Send(func(ctx context.Context) (interface{}, error) {
@@ -37,9 +38,14 @@ func TestPool_Send2(t *testing.T) {
 
 		time.Sleep(time.Second)
 		return nil, nil
-	}, WithTimeout(time.Second), WithRetry(3))
+	}, WithTimeout(time.Second), WithRetry(retry))
 
 	task.Get1()
+
+	if counter == retry {
+		t.Fail()
+	}
+
 	task.Get1()
 	task.Get1()
 }
