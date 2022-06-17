@@ -64,7 +64,7 @@ func (my *taskCallback) runOnce() error {
 	select {
 	case <-doneChan:
 	case <-ctx.Done():
-		my.err = context.DeadlineExceeded
+		my.result, my.err = nil, context.DeadlineExceeded
 	}
 
 	return my.err
