@@ -55,6 +55,17 @@ func (my *taskCallback) runOnce() error {
 	var ctx, cancel = context.WithTimeout(context.Background(), my.timeout)
 	defer cancel()
 
-	my.result, my.err = my.handler(ctx)
+	var doneChan = make(chan struct{})
+	go func() {
+		defer close(doneChan)
+		my.result, my.err = my.handler(ctx)
+	}()
+
+	select {
+	case <-doneChan:
+	case <-ctx.Done():
+		my.err = context.DeadlineExceeded
+	}
+
 	return my.err
 }
