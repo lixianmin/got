@@ -26,7 +26,7 @@ func NewPool(options ...PoolOption) Pool {
 	var opts = createPoolOptions(options)
 
 	var my = &wrapper{&poolImpl{
-		taskChan:  make(chan *taskCallback, opts.size),
+		taskChan:  make(chan Task, opts.size),
 		closeChan: make(chan struct{}),
 	}}
 

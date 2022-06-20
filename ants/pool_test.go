@@ -56,12 +56,25 @@ func TestPool_HandleTooLongTime(t *testing.T) {
 	var task = pool.Send(func(ctx context.Context) (interface{}, error) {
 		time.Sleep(time.Second)
 		return nil, nil
-	}, WithTimeout(200*time.Millisecond))
+	}, WithTimeout(200*time.Millisecond), WithRetry(3))
 
 	var _, err = task.Get2()
+
+	var tasks = make([]Task, 0)
+	for i := 0; i < 100; i++ {
+		tasks = append(tasks, pool.Send(func(ctx context.Context) (interface{}, error) {
+			time.Sleep(10 * time.Millisecond)
+			return nil, nil
+		}, WithTimeout(200*time.Millisecond), WithRetry(3)))
+	}
+
+	for _, task := range tasks {
+		task.Get1()
+	}
+
 	var endTime = time.Now()
 	var past = endTime.Sub(startTime)
-	if past > 500*time.Millisecond || err != context.DeadlineExceeded {
+	if past > 700*time.Millisecond || err != nil && err != context.DeadlineExceeded {
 		t.Fail()
 	}
 }

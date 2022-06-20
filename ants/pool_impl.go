@@ -12,7 +12,7 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type poolImpl struct {
-	taskChan  chan *taskCallback
+	taskChan  chan Task
 	closeChan chan struct{}
 }
 
@@ -22,13 +22,16 @@ func (my *poolImpl) Send(handler Handler, options ...TaskOption) Task {
 	}
 
 	var opts = createTaskOptions(options)
-	var task = newTaskCallback(handler, opts)
+	var task = newTaskCallback(my, handler, opts)
+	my.send(task)
+	return task
+}
+
+func (my *poolImpl) send(task Task) {
 	select {
 	case my.taskChan <- task:
 	case <-my.closeChan:
 	}
-
-	return task
 }
 
 func (my *poolImpl) goDispatch() {

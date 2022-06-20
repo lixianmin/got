@@ -6,6 +6,7 @@ author:     lixianmin
 
 Copyright (C) - All Rights Reserved
 *********************************************************************/
+const minGoroutines = 2 //  因为task_callback会调用pool.send(), 因此只有一个goroutine的话会导致死锁
 
 type poolOptions struct {
 	size int
@@ -15,7 +16,7 @@ type PoolOption func(*poolOptions)
 
 func createPoolOptions(optionList []PoolOption) poolOptions {
 	var opts = poolOptions{
-		size: 1,
+		size: minGoroutines,
 	}
 
 	for _, opt := range optionList {
@@ -27,7 +28,7 @@ func createPoolOptions(optionList []PoolOption) poolOptions {
 
 func WithSize(size int) PoolOption {
 	return func(opts *poolOptions) {
-		if size > 0 {
+		if size >= minGoroutines {
 			opts.size = size
 		}
 	}

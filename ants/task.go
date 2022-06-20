@@ -10,4 +10,5 @@ Copyright (C) - All Rights Reserved
 type Task interface {
 	Get1() interface{}
 	Get2() (interface{}, error)
+	run()
 }

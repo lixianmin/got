@@ -6,7 +6,7 @@ import (
 )
 
 /********************************************************************
-created:    2021-04-29
+created:    2022-06-15
 author:     lixianmin
 
 Copyright (C) - All Rights Reserved
@@ -14,6 +14,7 @@ Copyright (C) - All Rights Reserved
 
 type taskCallback struct {
 	taskOptions
+	pool    *poolImpl
 	handler Handler
 
 	result interface{}
@@ -21,9 +22,10 @@ type taskCallback struct {
 	wg     sync.WaitGroup
 }
 
-func newTaskCallback(handler Handler, opts taskOptions) *taskCallback {
+func newTaskCallback(pool *poolImpl, handler Handler, opts taskOptions) *taskCallback {
 	var my = &taskCallback{
 		taskOptions: opts,
+		pool:        pool,
 		handler:     handler,
 	}
 
@@ -32,8 +34,8 @@ func newTaskCallback(handler Handler, opts taskOptions) *taskCallback {
 }
 
 func (my *taskCallback) Get1() interface{} {
-	my.wg.Wait()
-	return my.result
+	var result, _ = my.Get2()
+	return result
 }
 
 func (my *taskCallback) Get2() (interface{}, error) {
@@ -45,27 +47,19 @@ func (my *taskCallback) run() {
 	defer my.wg.Done()
 
 	for i := 0; i < my.retry; i++ {
-		if my.runOnce() == nil {
+		if result, err := my.runTaskOnce(); err == nil || err != context.DeadlineExceeded {
+			my.result, my.err = result, err
 			return
 		}
 	}
 }
 
-func (my *taskCallback) runOnce() error {
+func (my *taskCallback) runTaskOnce() (interface{}, error) {
 	var ctx, cancel = context.WithTimeout(context.Background(), my.timeout)
 	defer cancel()
 
-	var doneChan = make(chan struct{})
-	go func() {
-		defer close(doneChan)
-		my.result, my.err = my.handler(ctx)
-	}()
+	var task = newTaskOnce(ctx, my.handler)
+	my.pool.send(task)
 
-	select {
-	case <-doneChan:
-	case <-ctx.Done():
-		my.result, my.err = nil, context.DeadlineExceeded
-	}
-
-	return my.err
+	return task.Get2()
 }
