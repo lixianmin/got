@@ -12,9 +12,9 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type poolImpl struct {
-	taskChan      chan Task
-	taskChanInner chan Task
-	closeChan     chan struct{}
+	taskChan          chan Task
+	innerCallbackChan chan func()
+	closeChan         chan struct{}
 }
 
 func (my *poolImpl) Send(handler Handler, options ...TaskOption) Task {
@@ -33,9 +33,9 @@ func (my *poolImpl) Send(handler Handler, options ...TaskOption) Task {
 	return task
 }
 
-func (my *poolImpl) sendTaskInner(task Task) {
+func (my *poolImpl) sendInnerCallback(callback func()) {
 	select {
-	case my.taskChanInner <- task:
+	case my.innerCallbackChan <- callback:
 	case <-my.closeChan:
 	}
 }
@@ -53,13 +53,13 @@ func (my *poolImpl) goDispatchTask() {
 	}
 }
 
-func (my *poolImpl) goDispatchTaskInner() {
+func (my *poolImpl) goDispatchInnerCallback() {
 	defer loom.DumpIfPanic()
 
 	for {
 		select {
-		case task := <-my.taskChanInner:
-			task.run()
+		case callback := <-my.innerCallbackChan:
+			callback()
 		case <-my.closeChan:
 			return
 		}
