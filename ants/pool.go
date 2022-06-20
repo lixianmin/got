@@ -26,12 +26,14 @@ func NewPool(options ...PoolOption) Pool {
 	var opts = createPoolOptions(options)
 
 	var my = &wrapper{&poolImpl{
-		taskChan:  make(chan Task, opts.size),
-		closeChan: make(chan struct{}),
+		taskChan:      make(chan Task, opts.size),
+		taskChanInner: make(chan Task, opts.size),
+		closeChan:     make(chan struct{}),
 	}}
 
 	for i := 0; i < opts.size; i++ {
-		go my.goDispatch()
+		go my.goDispatchTask()
+		go my.goDispatchTaskInner()
 	}
 
 	// 参考: https://zhuanlan.zhihu.com/p/76504936

@@ -51,7 +51,7 @@ func TestPool_GetMultiTimes(t *testing.T) {
 }
 
 func TestPool_HandleTooLongTime(t *testing.T) {
-	var pool = NewPool()
+	var pool = NewPool(WithSize(3))
 	var startTime = time.Now()
 	var task = pool.Send(func(ctx context.Context) (interface{}, error) {
 		time.Sleep(time.Second)
@@ -63,7 +63,7 @@ func TestPool_HandleTooLongTime(t *testing.T) {
 	var tasks = make([]Task, 0)
 	for i := 0; i < 100; i++ {
 		tasks = append(tasks, pool.Send(func(ctx context.Context) (interface{}, error) {
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(2 * time.Millisecond)
 			return nil, nil
 		}, WithTimeout(200*time.Millisecond), WithRetry(3)))
 	}
@@ -74,7 +74,7 @@ func TestPool_HandleTooLongTime(t *testing.T) {
 
 	var endTime = time.Now()
 	var past = endTime.Sub(startTime)
-	if past > 700*time.Millisecond || err != nil && err != context.DeadlineExceeded {
+	if past > 2*time.Second || err != nil && err != context.DeadlineExceeded {
 		t.Fail()
 	}
 }

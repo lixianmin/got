@@ -60,7 +60,7 @@ func (my *taskCallback) runTaskOnce() (interface{}, error) {
 
 	// 这个run()是在goDispatch()的goroutine中, 自己给自己发task, 很容易死锁
 	var task = newTaskOnce(ctx, my.handler)
-	my.pool.send(task)
+	my.pool.sendTaskInner(task)
 
 	return task.Get2()
 }
