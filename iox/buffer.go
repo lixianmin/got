@@ -183,7 +183,7 @@ func (b *Buffer) Next(n int) []byte {
 func (b *Buffer) Tidy() {
 	if b.empty() {
 		b.Reset()
-	} else {
+	} else if b.off > 0 { // 如果b.off == 0 则不需要重新copy一遍
 		var size = b.Len()
 		copy(b.buf, b.buf[b.off:])
 
