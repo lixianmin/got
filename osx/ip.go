@@ -24,6 +24,11 @@ func GetLocalIp() string {
 	return localIp
 }
 
+// SetLocalIp 有时候自己取到的IP是不对的，我们可能需要一个不一样的IP
+func SetLocalIp(ip string) {
+	localIp = ip
+}
+
 func fetchLocalIp() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
