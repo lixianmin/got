@@ -167,6 +167,19 @@ func (b *Buffer) Read(p []byte) (n int, err error) {
 	return n, nil
 }
 
+// ReadOnce 主要用于读一次网络数据这种永不结束的流
+func (b *Buffer) ReadOnce(reader io.Reader, buf []byte) (int, error) {
+	// 类似于ReadFrom()，但ReadFrom()的结束条件为读到io.EOF或err
+	// 为什么不采用循环读的方式？因为有可能对方一直发大规模的数据，永不结束，这样不但把iox.Buffer打死了，读过程还结束不了
+	var num, err = reader.Read(buf)
+	if err != nil {
+		return 0, err
+	}
+
+	_, _ = b.Write(buf[:num])
+	return num, nil
+}
+
 // Next returns a slice containing the next n bytes from the buffer,
 // advancing the buffer as if the bytes had been returned by Read.
 // If there are fewer than n bytes in the buffer, Next returns the entire buffer.
