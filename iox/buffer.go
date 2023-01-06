@@ -167,37 +167,6 @@ func (b *Buffer) Read(p []byte) (n int, err error) {
 	return n, nil
 }
 
-// MinRead is the minimum slice size passed to a Read call by
-// Buffer.ReadFrom. As long as the Buffer has at least MinRead bytes beyond
-// what is required to hold the contents of r, ReadFrom will not grow the
-// underlying buffer.
-const MinRead = 512
-
-// ReadFrom reads data from r until EOF and appends it to the buffer, growing
-// the buffer as needed. The return value n is the number of bytes read. Any
-// error except io.EOF encountered during the read is also returned. If the
-// buffer becomes too large, ReadFrom will panic with ErrTooLarge.
-func (b *Buffer) ReadFrom(r io.Reader) (n int64, err error) {
-	//b.lastRead = opInvalid
-	for {
-		i := b.grow(MinRead)
-		b.buf = b.buf[:i]
-		m, e := r.Read(b.buf[i:cap(b.buf)])
-		if m < 0 {
-			panic(errNegativeRead)
-		}
-
-		b.buf = b.buf[:i+m]
-		n += int64(m)
-		if e == io.EOF {
-			return n, nil // e is EOF, so return nil explicitly
-		}
-		if e != nil {
-			return n, e
-		}
-	}
-}
-
 // Next returns a slice containing the next n bytes from the buffer,
 // advancing the buffer as if the bytes had been returned by Read.
 // If there are fewer than n bytes in the buffer, Next returns the entire buffer.
