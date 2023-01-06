@@ -9,6 +9,8 @@ import (
 created:    2020-12-07
 author:     lixianmin
 
+参考 bytes.Buffer改遍而来，目前似乎只是加了一个Tidy()的方法
+
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
@@ -16,8 +18,8 @@ Copyright (C) - All Rights Reserved
 const smallBufferSize = 64
 
 // ErrTooLarge is passed to panic if memory cannot be allocated to store data in a buffer.
-var ErrTooLarge = errors.New("bytes.Buffer: too large")
-var errNegativeRead = errors.New("bytes.Buffer: reader returned negative count from Read")
+var ErrTooLarge = errors.New("iox.Buffer: too large")
+var errNegativeRead = errors.New("iox.Buffer: reader returned negative count from Read")
 
 const maxInt = int(^uint(0) >> 1)
 
@@ -27,8 +29,9 @@ type Buffer struct {
 	buf []byte // contents are the bytes buf[off : len(buf)]
 	off int    // read at &buf[off], write at &buf[len(buf)]
 
-	checkpointBuffer []byte
-	checkpointOffset int
+	// 通过buffer.Bytes()预取并计算，可以避免make checkpoint相关的逻辑
+	//checkpointBuffer []byte
+	//checkpointOffset int
 }
 
 // Bytes returns a slice of length b.Len() holding the unread portion of the buffer.
@@ -192,13 +195,13 @@ func (b *Buffer) Tidy() {
 	}
 }
 
-func (b *Buffer) MakeCheckpoint() {
-	b.checkpointBuffer, b.checkpointOffset = b.buf, b.off
-}
-
-func (b *Buffer) RestoreCheckpoint() {
-	b.buf, b.off = b.checkpointBuffer, b.checkpointOffset
-}
+//func (b *Buffer) MakeCheckpoint() {
+//	b.checkpointBuffer, b.checkpointOffset = b.buf, b.off
+//}
+//
+//func (b *Buffer) RestoreCheckpoint() {
+//	b.buf, b.off = b.checkpointBuffer, b.checkpointOffset
+//}
 
 // makeSlice allocates a slice of size n. If the allocation fails, it panics
 // with ErrTooLarge.
