@@ -171,6 +171,8 @@ func (b *Buffer) Read(p []byte) (n int, err error) {
 func (b *Buffer) ReadOnce(reader io.Reader, buf []byte) (int, error) {
 	// 类似于ReadFrom()，但ReadFrom()的结束条件为读到io.EOF或err
 	// 为什么不采用循环读的方式？因为有可能对方一直发大规模的数据，永不结束，这样不但把iox.Buffer打死了，读过程还结束不了
+	//
+	// 本方法是从其它的reader读数据到本buffer中，只修改b.buf，不修改b.off
 	var num, err = reader.Read(buf)
 	if err != nil {
 		return 0, err
