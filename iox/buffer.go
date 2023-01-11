@@ -197,11 +197,11 @@ func (b *Buffer) Next(n int) []byte {
 
 // Tidy 整理buffer中的数据, 使得buffer不会无限增长
 func (b *Buffer) Tidy() {
-	if b.empty() {
-		b.Reset()
-	} else if b.off > 0 { // 如果b.off == 0 则不需要重新copy一遍
-		var size = b.Len()
-		copy(b.buf, b.buf[b.off:])
+	if b.off > 0 {
+		var size = len(b.buf) - b.off
+		if size > 0 { // 如果size == 0 则不需要重新copy一遍
+			copy(b.buf, b.buf[b.off:])
+		}
 
 		b.buf = b.buf[:size]
 		b.off = 0
