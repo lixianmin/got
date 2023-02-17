@@ -19,7 +19,9 @@ const smallBufferSize = 64
 
 // ErrTooLarge is passed to panic if memory cannot be allocated to store data in a buffer.
 var ErrTooLarge = errors.New("iox.Buffer: too large")
-var errNegativeRead = errors.New("iox.Buffer: reader returned negative count from Read")
+
+// var errNegativeRead = errors.New("iox.Buffer: reader returned negative count from Read")
+var errInvalidSeek = errors.New("iox.Buffer: invalid seek")
 
 const maxInt = int(^uint(0) >> 1)
 
@@ -70,6 +72,26 @@ func (b *Buffer) Cap() int { return cap(b.buf) }
 func (b *Buffer) Reset() {
 	b.buf = b.buf[:0]
 	b.off = 0
+}
+
+func (b *Buffer) Seek(offset int64, whence int) (ret int64, err error) {
+	if whence >= io.SeekStart && whence <= io.SeekEnd {
+		var off = int(offset)
+		var next = off
+
+		if whence == io.SeekCurrent {
+			next = b.off + off
+		} else if whence == io.SeekEnd {
+			next = b.Len() + off
+		}
+
+		if next >= 0 && next < b.Len() {
+			b.off = next
+			return int64(next), nil
+		}
+	}
+
+	return 0, errInvalidSeek
 }
 
 // tryGrowByReslice is an inlineable version of grow for the fast-case where the
