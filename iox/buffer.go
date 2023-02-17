@@ -80,12 +80,12 @@ func (b *Buffer) Seek(offset int64, whence int) (ret int64, err error) {
 		var next = off
 
 		if whence == io.SeekCurrent {
-			next = b.off + off
+			next += b.off
 		} else if whence == io.SeekEnd {
-			next = b.Len() + off
+			next += len(b.buf)
 		}
 
-		if next >= 0 && next < b.Len() {
+		if next >= 0 && next <= len(b.buf) {
 			b.off = next
 			return int64(next), nil
 		}

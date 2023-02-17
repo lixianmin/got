@@ -73,35 +73,41 @@ func TestBuffer_Seek(t *testing.T) {
 
 	var data = "hello"
 	var size = int64(len(data))
-	writeString(input, data)
+	_, _ = input.Write(convert.Bytes(data))
 
 	var next, err = input.Seek(0, io.SeekStart)
 	if err != nil || next != 0 {
 		t.Fatal(next, err)
 	}
 
-	next, err = input.Seek(size-1, io.SeekStart)
-	if err != nil || next != size-1 {
+	next, err = input.Seek(size, io.SeekStart)
+	if err != nil || next != size {
 		t.Fatal(next, err)
 	}
 
-	next, err = input.Seek(1-size, io.SeekCurrent)
+	next, err = input.Seek(-size, io.SeekCurrent)
 	if err != nil || next != 0 {
 		t.Fatal(next, err)
 	}
 
-	next, err = input.Seek(size-1, io.SeekCurrent)
-	if err != nil || next != size-1 {
+	next, err = input.Seek(size, io.SeekCurrent)
+	if err != nil || next != size {
 		t.Fatal(next, err)
 	}
 
-	next, err = input.Seek(1-size, io.SeekEnd)
+	next, err = input.Seek(-size, io.SeekEnd)
 	if err != nil || next != 0 {
 		t.Fatal(next, err)
 	}
 
 	next, err = input.Seek(size, io.SeekEnd)
 	if err == nil {
+		t.Fatal(next, err)
+	}
+
+	_, _ = input.Seek(size, io.SeekStart)
+	next, err = input.Seek(0, io.SeekStart)
+	if err != nil || next != 0 {
 		t.Fatal(next, err)
 	}
 }
