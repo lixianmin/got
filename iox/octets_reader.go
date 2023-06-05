@@ -79,3 +79,7 @@ func (my *OctetsReader) Read7BitEncodedInt() (int32, error) {
 
 	return int32(num) | (int32(b) << 28), nil
 }
+
+func (my *OctetsReader) GetStream() *OctetsStream {
+	return my.stream
+}
