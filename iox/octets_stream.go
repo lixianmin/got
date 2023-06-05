@@ -204,6 +204,11 @@ func (my *OctetsStream) GetPosition() int {
 	return int(my.position - my.initialIndex)
 }
 
+func (my *OctetsStream) GetBytes() []byte {
+	var remainSize = my.length - my.position
+	return my.buffer[my.position:remainSize]
+}
+
 func (my *OctetsStream) Tidy() error {
 	var count = my.length - my.position
 	copy(my.buffer[my.initialIndex:], my.buffer[my.position:my.position+count])
