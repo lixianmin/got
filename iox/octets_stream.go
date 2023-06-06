@@ -13,12 +13,11 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type OctetsStream struct {
-	buffer       []byte
-	position     int32
-	length       int32
-	capacity     int32
-	dirtyBytes   int32
-	initialIndex int32
+	buffer     []byte
+	position   int32
+	length     int32 // 有效数据长度
+	capacity   int32
+	dirtyBytes int32
 }
 
 func (my *OctetsStream) ReadByte() (byte, error) {
@@ -179,7 +178,7 @@ func (my *OctetsStream) SetLength(length int) error {
 		return ErrInvalidArgument
 	}
 
-	var num = int32(length) + my.initialIndex
+	var num = int32(length)
 	if num > my.length {
 		if err := my.expand(num); err != nil {
 			return err
@@ -197,11 +196,11 @@ func (my *OctetsStream) SetLength(length int) error {
 }
 
 func (my *OctetsStream) GetLength() int {
-	return int(my.length - my.initialIndex)
+	return int(my.length)
 }
 
 func (my *OctetsStream) GetPosition() int {
-	return int(my.position - my.initialIndex)
+	return int(my.position)
 }
 
 func (my *OctetsStream) GetBytes() []byte {
@@ -211,9 +210,9 @@ func (my *OctetsStream) GetBytes() []byte {
 
 func (my *OctetsStream) Tidy() error {
 	var count = my.length - my.position
-	copy(my.buffer[my.initialIndex:], my.buffer[my.position:my.position+count])
+	copy(my.buffer, my.buffer[my.position:my.position+count])
 
-	my.position = my.initialIndex
+	my.position = 0
 	return my.SetLength(int(count))
 }
 
@@ -224,7 +223,7 @@ func (my *OctetsStream) Seek(offset int64, whence int) (int64, error) {
 		if offset < 0 {
 			return 0, ErrInvalidArgument
 		}
-		num = my.initialIndex
+		num = 0
 	case io.SeekCurrent:
 		num = my.position
 	case io.SeekEnd:
@@ -234,7 +233,7 @@ func (my *OctetsStream) Seek(offset int64, whence int) (int64, error) {
 	}
 
 	num += int32(offset)
-	if num < my.initialIndex {
+	if num < 0 {
 		return 0, ErrInvalidArgument
 	}
 
