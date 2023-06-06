@@ -12,8 +12,8 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type OctetsStream struct {
-	buffer   []byte
-	position int // 只与read有关, 指向接下来要读取的位置; position<=len(buffer)
+	buffer   []byte // 有效内容为 buffer[position:len(buffer)]; read at &buffer[position], write at &buffer[len(buffer)]
+	position int    // position只与read有关, 指向接下来要读取的位置; position<=len(buffer); 结构与iox.Buffer完全相同
 }
 
 func (my *OctetsStream) ReadByte() (byte, error) {
@@ -79,6 +79,10 @@ func (my *OctetsStream) Write(buffer []byte) error {
 
 func (my *OctetsStream) Len() int {
 	return len(my.buffer)
+}
+
+func (my *OctetsStream) Position() int {
+	return my.position
 }
 
 func (my *OctetsStream) Bytes() []byte {
