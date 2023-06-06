@@ -1,7 +1,6 @@
 package iox
 
 import (
-	"encoding/binary"
 	"io"
 )
 
@@ -13,14 +12,12 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type OctetsStream struct {
-	buffer     []byte
-	position   int
-	length     int // 有效数据长度
-	dirtyBytes int
+	buffer   []byte
+	position int // 只与read有关, 指向接下来要读取的位置; position<=len(buffer)
 }
 
 func (my *OctetsStream) ReadByte() (byte, error) {
-	if my.position >= my.length {
+	if my.position >= len(my.buffer) {
 		return 0, ErrNotEnoughData
 	}
 
@@ -30,163 +27,70 @@ func (my *OctetsStream) ReadByte() (byte, error) {
 }
 
 func (my *OctetsStream) ReadInt32() (int32, error) {
-	const size = 4
-	if my.position+size > my.length {
+	const readSize = 4
+	if my.position+readSize > len(my.buffer) {
 		return 0, ErrNotEnoughData
 	}
 
-	var result = int32(binary.LittleEndian.Uint32(my.buffer[my.position:]))
-	my.position += size
+	var b = my.buffer[my.position:]
+	var result = int32(b[0]) | int32(b[1])<<8 | int32(b[2])<<16 | int32(b[3])<<24
+	my.position += readSize
 	return result, nil
 }
 
-func (my *OctetsStream) Read(buffer []byte, offset int, count int) (int, error) {
-	var size = len(my.buffer)
-	if size == 0 {
-		return 0, ErrEmptyBuffer
-	}
-
-	if offset < 0 || count < 0 {
+func (my *OctetsStream) Read(buffer []byte) (int, error) {
+	var readSize = len(buffer)
+	if readSize == 0 {
 		return 0, ErrInvalidArgument
 	}
 
-	if size-offset < count {
-		return 0, ErrInvalidArgument
-	}
-
-	if my.position >= my.length || count == 0 {
+	var remainSize = len(my.buffer) - my.position
+	if remainSize == 0 {
 		return 0, nil
 	}
 
-	var remaining = int(my.length - my.position)
-	if count > remaining {
-		count = remaining
+	if readSize > remainSize {
+		readSize = remainSize
 	}
 
-	copy(buffer[offset:], my.buffer[my.position:my.position+count])
-	my.position += count
-	return count, nil
+	copy(buffer, my.buffer[my.position:my.position+readSize])
+	my.position += readSize
+	return readSize, nil
 }
 
 func (my *OctetsStream) WriteByte(b byte) error {
-	if my.position >= my.length {
-		my.expand(my.position + 1)
-		my.length = my.position + 1
-	}
-
-	my.buffer[my.position] = b
-	my.position++
+	my.buffer = append(my.buffer, b)
 	return nil
 }
 
 func (my *OctetsStream) WriteInt32(d int32) error {
-	const size = 4
-	var targetLength = my.position + size
-	if targetLength > my.length {
-		my.expand(targetLength)
-	}
-
-	binary.LittleEndian.PutUint32(my.buffer[my.position:], uint32(d))
-	my.position += size
-	if my.position >= my.length {
-		my.length = my.position
-	}
+	my.buffer = append(my.buffer, byte(d), byte(d>>8), byte(d>>16), byte(d>>24))
 	return nil
 }
 
-func (my *OctetsStream) Write(buffer []byte, offset int, count int) error {
-	if buffer == nil {
-		return ErrEmptyBuffer
-	}
-
-	if offset < 0 || count < 0 {
-		return ErrInvalidArgument
-	}
-
-	if len(my.buffer)-offset < count {
-		return ErrInvalidArgument
-	}
-
-	var targetLength = my.position + count
-	if targetLength > my.length {
-		my.expand(targetLength)
-	}
-
-	copy(my.buffer[my.position:], buffer[offset:offset+count])
-	my.position += count
-
-	if my.position >= my.length {
-		my.length = my.position
+func (my *OctetsStream) Write(buffer []byte) error {
+	var size = len(buffer)
+	if size > 0 {
+		my.buffer = append(my.buffer, buffer...)
 	}
 
 	return nil
 }
 
-func (my *OctetsStream) expand(nextSize int) {
-	var lastSize = cap(my.buffer)
-	if nextSize > lastSize {
-		const minSize = 16
-		if nextSize < minSize {
-			nextSize = minSize
-		} else if nextSize < (lastSize << 1) {
-			nextSize = lastSize << 1
-		}
+func (my *OctetsStream) Len() int {
+	return len(my.buffer)
+}
 
-		var array = make([]byte, nextSize)
-		if my.length > 0 {
-			copy(array, my.buffer[:my.length])
-		}
+func (my *OctetsStream) Bytes() []byte {
+	return my.buffer[my.position:]
+}
 
-		my.dirtyBytes = 0
-		my.buffer = array
-	} else if my.dirtyBytes > 0 {
-		var size = my.dirtyBytes
-		for i := 0; i < size; i++ {
-			my.buffer[i] = 0
-		}
-		my.dirtyBytes = 0
+func (my *OctetsStream) Tidy() {
+	if my.position > 0 {
+		copy(my.buffer, my.buffer[my.position:])
+		my.buffer = my.buffer[:len(my.buffer)-my.position]
+		my.position = 0
 	}
-}
-
-func (my *OctetsStream) SetLength(length int) error {
-	if length < 0 || length > cap(my.buffer) {
-		return ErrInvalidArgument
-	}
-
-	var num = length
-	if num > my.length {
-		my.expand(num)
-	} else if num < my.length {
-		my.dirtyBytes += my.length - num
-	}
-
-	my.length = num
-	if my.position > my.length {
-		my.position = my.length
-	}
-
-	return nil
-}
-
-func (my *OctetsStream) GetLength() int {
-	return my.length
-}
-
-func (my *OctetsStream) GetPosition() int {
-	return my.position
-}
-
-func (my *OctetsStream) GetBytes() []byte {
-	var remainSize = my.length - my.position
-	return my.buffer[my.position:remainSize]
-}
-
-func (my *OctetsStream) Tidy() error {
-	var count = my.length - my.position
-	copy(my.buffer, my.buffer[my.position:my.position+count])
-
-	my.position = 0
-	return my.SetLength(count)
 }
 
 func (my *OctetsStream) Seek(offset int64, whence int) (int64, error) {
@@ -200,7 +104,7 @@ func (my *OctetsStream) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		num = int64(my.position)
 	case io.SeekEnd:
-		num = int64(my.length)
+		num = int64(len(my.buffer))
 	default:
 		return 0, ErrInvalidArgument
 	}

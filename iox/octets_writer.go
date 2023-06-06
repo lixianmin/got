@@ -33,7 +33,7 @@ func (my *OctetsWriter) WriteString(s string) error {
 		return err
 	}
 
-	return my.stream.Write(data, 0, size)
+	return my.stream.Write(data)
 }
 
 func (my *OctetsWriter) Write7BitEncodedInt(d int32) error {

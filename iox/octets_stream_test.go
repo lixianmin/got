@@ -38,8 +38,8 @@ func TestOctetsStream_Read(t *testing.T) {
 
 	_, _ = stream.Seek(0, io.SeekStart)
 
-	var buffer = make([]byte, count)
-	var num, _ = stream.Read(buffer, 0, count/2)
+	var buffer = make([]byte, count/2)
+	var num, _ = stream.Read(buffer)
 	if num != count/2 {
 		t.Fail()
 	}
@@ -50,8 +50,8 @@ func TestOctetsStream_Read(t *testing.T) {
 		}
 	}
 
-	_ = stream.Tidy()
-	if stream.GetLength() != count/2 {
+	stream.Tidy()
+	if stream.Len() != count/2 {
 		t.Fail()
 	}
 }

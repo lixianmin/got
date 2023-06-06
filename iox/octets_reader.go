@@ -41,7 +41,7 @@ func (my *OctetsReader) ReadString() (string, error) {
 	}
 
 	var data = make([]byte, size)
-	var num, err2 = my.stream.Read(data, 0, int(size))
+	var num, err2 = my.stream.Read(data)
 	if err2 != nil {
 		return "", err2
 	}
