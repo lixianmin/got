@@ -111,3 +111,8 @@ func TestBuffer_Seek(t *testing.T) {
 		t.Fatal(next, err)
 	}
 }
+
+func TestBuffer_Reset(t *testing.T) {
+	var input = &Buffer{}
+	input.Reset()
+}

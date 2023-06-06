@@ -27,6 +27,11 @@ func TestOctetsStream_ReadByte(t *testing.T) {
 			t.Fail()
 		}
 	}
+
+	var _, err = stream.ReadByte()
+	if err != ErrNotEnoughData {
+		t.Fail()
+	}
 }
 
 func TestOctetsStream_Read(t *testing.T) {
@@ -54,4 +59,9 @@ func TestOctetsStream_Read(t *testing.T) {
 	if stream.Len() != count/2 {
 		t.Fail()
 	}
+}
+
+func TestOctetsStream_Bytes(t *testing.T) {
+	var stream = &OctetsStream{}
+	stream.Bytes()
 }

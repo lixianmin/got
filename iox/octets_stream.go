@@ -97,6 +97,11 @@ func (my *OctetsStream) Tidy() {
 	}
 }
 
+func (my *OctetsStream) Reset() {
+	my.buffer = my.buffer[:0]
+	my.position = 0
+}
+
 func (my *OctetsStream) Seek(offset int64, whence int) (int64, error) {
 	var num int64
 	switch whence {

@@ -70,7 +70,7 @@ func (b *Buffer) Cap() int { return cap(b.buf) }
 // but it retains the underlying storage for use by future writes.
 // Reset is the same as Truncate(0).
 func (b *Buffer) Reset() {
-	b.buf = b.buf[:0]
+	b.buf = b.buf[:0] // even if b.buf=nil, it can run without panic
 	b.off = 0
 }
 
