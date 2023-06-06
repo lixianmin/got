@@ -14,10 +14,9 @@ Copyright (C) - All Rights Reserved
 
 type OctetsStream struct {
 	buffer     []byte
-	position   int32
-	length     int32 // 有效数据长度
-	capacity   int32
-	dirtyBytes int32
+	position   int
+	length     int // 有效数据长度
+	dirtyBytes int
 }
 
 func (my *OctetsStream) ReadByte() (byte, error) {
@@ -64,16 +63,14 @@ func (my *OctetsStream) Read(buffer []byte, offset int, count int) (int, error) 
 		count = remaining
 	}
 
-	copy(buffer[offset:], my.buffer[my.position:my.position+int32(count)])
-	my.position += int32(count)
+	copy(buffer[offset:], my.buffer[my.position:my.position+count])
+	my.position += count
 	return count, nil
 }
 
 func (my *OctetsStream) WriteByte(b byte) error {
 	if my.position >= my.length {
-		if err := my.expand(my.position + 1); err != nil {
-			return err
-		}
+		my.expand(my.position + 1)
 		my.length = my.position + 1
 	}
 
@@ -86,9 +83,7 @@ func (my *OctetsStream) WriteInt32(d int32) error {
 	const size = 4
 	var targetLength = my.position + size
 	if targetLength > my.length {
-		if err := my.expand(targetLength); err != nil {
-			return err
-		}
+		my.expand(targetLength)
 	}
 
 	binary.LittleEndian.PutUint32(my.buffer[my.position:], uint32(d))
@@ -112,15 +107,13 @@ func (my *OctetsStream) Write(buffer []byte, offset int, count int) error {
 		return ErrInvalidArgument
 	}
 
-	var targetLength = my.position + int32(count)
+	var targetLength = my.position + count
 	if targetLength > my.length {
-		if err := my.expand(targetLength); err != nil {
-			return err
-		}
+		my.expand(targetLength)
 	}
 
 	copy(my.buffer[my.position:], buffer[offset:offset+count])
-	my.position += int32(count)
+	my.position += count
 
 	if my.position >= my.length {
 		my.length = my.position
@@ -129,60 +122,40 @@ func (my *OctetsStream) Write(buffer []byte, offset int, count int) error {
 	return nil
 }
 
-func (my *OctetsStream) expand(newSize int32) error {
-	if newSize > my.capacity {
-		var num = newSize
-		const minSize = 32
-		if num < minSize {
-			num = minSize
-		} else if num < (my.capacity << 1) {
-			num = my.capacity << 1
+func (my *OctetsStream) expand(nextSize int) {
+	var lastSize = cap(my.buffer)
+	if nextSize > lastSize {
+		const minSize = 16
+		if nextSize < minSize {
+			nextSize = minSize
+		} else if nextSize < (lastSize << 1) {
+			nextSize = lastSize << 1
 		}
 
-		return my.SetCapacity(int(num))
+		var array = make([]byte, nextSize)
+		if my.length > 0 {
+			copy(array, my.buffer[:my.length])
+		}
+
+		my.dirtyBytes = 0
+		my.buffer = array
 	} else if my.dirtyBytes > 0 {
-		var size = int(my.dirtyBytes)
+		var size = my.dirtyBytes
 		for i := 0; i < size; i++ {
 			my.buffer[i] = 0
 		}
 		my.dirtyBytes = 0
 	}
-
-	return nil
-}
-
-func (my *OctetsStream) SetCapacity(capacity int) error {
-	var c = int32(capacity)
-	if c != my.capacity {
-		if c < 0 || c < my.length {
-			return ErrInvalidArgument
-		}
-
-		if capacity != len(my.buffer) {
-			var array = make([]byte, capacity)
-			if my.length > 0 {
-				copy(array, my.buffer[:my.length])
-			}
-
-			my.dirtyBytes = 0
-			my.buffer = array
-			my.capacity = c
-		}
-	}
-
-	return nil
 }
 
 func (my *OctetsStream) SetLength(length int) error {
-	if length < 0 || int32(length) > my.capacity {
+	if length < 0 || length > cap(my.buffer) {
 		return ErrInvalidArgument
 	}
 
-	var num = int32(length)
+	var num = length
 	if num > my.length {
-		if err := my.expand(num); err != nil {
-			return err
-		}
+		my.expand(num)
 	} else if num < my.length {
 		my.dirtyBytes += my.length - num
 	}
@@ -196,11 +169,11 @@ func (my *OctetsStream) SetLength(length int) error {
 }
 
 func (my *OctetsStream) GetLength() int {
-	return int(my.length)
+	return my.length
 }
 
 func (my *OctetsStream) GetPosition() int {
-	return int(my.position)
+	return my.position
 }
 
 func (my *OctetsStream) GetBytes() []byte {
@@ -213,11 +186,11 @@ func (my *OctetsStream) Tidy() error {
 	copy(my.buffer, my.buffer[my.position:my.position+count])
 
 	my.position = 0
-	return my.SetLength(int(count))
+	return my.SetLength(count)
 }
 
 func (my *OctetsStream) Seek(offset int64, whence int) (int64, error) {
-	var num int32
+	var num int64
 	switch whence {
 	case io.SeekStart:
 		if offset < 0 {
@@ -225,18 +198,18 @@ func (my *OctetsStream) Seek(offset int64, whence int) (int64, error) {
 		}
 		num = 0
 	case io.SeekCurrent:
-		num = my.position
+		num = int64(my.position)
 	case io.SeekEnd:
-		num = my.length
+		num = int64(my.length)
 	default:
 		return 0, ErrInvalidArgument
 	}
 
-	num += int32(offset)
+	num += offset
 	if num < 0 {
 		return 0, ErrInvalidArgument
 	}
 
-	my.position = num
-	return int64(num), nil
+	my.position = int(num)
+	return num, nil
 }
