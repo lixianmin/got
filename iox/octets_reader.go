@@ -18,12 +18,24 @@ func NewOctetsReader(stream *OctetsStream) *OctetsReader {
 	return my
 }
 
+func (my *OctetsReader) ReadBool() (bool, error) {
+	return my.stream.ReadBool()
+}
+
 func (my *OctetsReader) ReadByte() (byte, error) {
 	return my.stream.ReadByte()
 }
 
+func (my *OctetsReader) ReadInt16() (int16, error) {
+	return my.stream.ReadInt16()
+}
+
 func (my *OctetsReader) ReadInt32() (int32, error) {
 	return my.stream.ReadInt32()
+}
+
+func (my *OctetsReader) ReadInt64() (int64, error) {
+	return my.stream.ReadInt64()
 }
 
 func (my *OctetsReader) ReadString() (string, error) {
@@ -62,8 +74,8 @@ func (my *OctetsReader) Read7BitEncodedInt() (int32, error) {
 			return 0, err
 		}
 
-		num |= (uint32)((b & 0x7F) << i)
-		if b < 127 {
+		num |= uint32(b&0x7F) << i
+		if b <= 127 {
 			return int32(num), nil
 		}
 	}

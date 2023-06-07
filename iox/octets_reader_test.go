@@ -51,3 +51,27 @@ func TestOctetsReader_ReadString(t *testing.T) {
 	fmt.Println(reader.ReadString())
 	fmt.Println(reader.ReadString())
 }
+
+func TestOctetsReader_Read7BitEncodedInt(t *testing.T) {
+	var stream = &OctetsStream{}
+	var writer = NewOctetsWriter(stream)
+	var reader = NewOctetsReader(stream)
+
+	var d int32 = 126
+	_ = writer.Write7BitEncodedInt(d)
+	stream.Seek(0, io.SeekStart)
+	var a, _ = reader.Read7BitEncodedInt()
+
+	if a != d {
+		t.Fail()
+	}
+
+	stream.Reset()
+	d = 1234567
+	_ = writer.Write7BitEncodedInt(d)
+	stream.Seek(0, io.SeekStart)
+	a, _ = reader.Read7BitEncodedInt()
+	if a != d {
+		t.Fail()
+	}
+}

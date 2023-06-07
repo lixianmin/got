@@ -18,12 +18,24 @@ func NewOctetsWriter(stream *OctetsStream) *OctetsWriter {
 	return my
 }
 
+func (my *OctetsWriter) WriteBool(b bool) error {
+	return my.stream.WriteBool(b)
+}
+
 func (my *OctetsWriter) WriteByte(b byte) error {
 	return my.stream.WriteByte(b)
 }
 
+func (my *OctetsWriter) WriteInt16(d int16) error {
+	return my.stream.WriteInt16(d)
+}
+
 func (my *OctetsWriter) WriteInt32(d int32) error {
 	return my.stream.WriteInt32(d)
+}
+
+func (my *OctetsWriter) WriteInt64(d int64) error {
+	return my.stream.WriteInt64(d)
 }
 
 func (my *OctetsWriter) WriteString(s string) error {
@@ -36,12 +48,12 @@ func (my *OctetsWriter) WriteString(s string) error {
 	return my.stream.Write(data)
 }
 
+// Write7BitEncodedInt 开启整数压缩
 func (my *OctetsWriter) Write7BitEncodedInt(d int32) error {
 	var num = uint32(d)
 	for num > 127 {
-		if err := my.stream.WriteByte(byte(num | 0xFFFFFF80)); err != nil {
-			return err
-		}
+		_ = my.stream.WriteByte(byte(num | 0xFFFFFF80))
+		num >>= 7
 	}
 
 	return my.stream.WriteByte(byte(num))
