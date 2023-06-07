@@ -39,31 +39,40 @@ func (my *OctetsReader) ReadInt64() (int64, error) {
 }
 
 func (my *OctetsReader) ReadString() (string, error) {
-	var size, err = my.Read7BitEncodedInt()
+	var data, err = my.ReadBytes()
 	if err != nil {
 		return "", err
 	}
 
+	var result = convert.String(data)
+	return result, nil
+}
+
+func (my *OctetsReader) ReadBytes() ([]byte, error) {
+	var size, err = my.Read7BitEncodedInt()
+	if err != nil {
+		return nil, err
+	}
+
 	if size < 0 {
-		return "", ErrNegativeSize
+		return nil, ErrNegativeSize
 	}
 
 	if size == 0 {
-		return "", nil
+		return nil, nil
 	}
 
 	var data = make([]byte, size)
 	var num, err2 = my.stream.Read(data)
 	if err2 != nil {
-		return "", err2
+		return nil, err2
 	}
 
 	if int32(num) != size {
-		return "", ErrNotEnoughData
+		return nil, ErrNotEnoughData
 	}
 
-	var result = convert.String(data)
-	return result, nil
+	return data, nil
 }
 
 func (my *OctetsReader) Read7BitEncodedInt() (int32, error) {

@@ -40,6 +40,10 @@ func (my *OctetsWriter) WriteInt64(d int64) error {
 
 func (my *OctetsWriter) WriteString(s string) error {
 	var data = convert.Bytes(s)
+	return my.WriteBytes(data)
+}
+
+func (my *OctetsWriter) WriteBytes(data []byte) error {
 	var size = len(data)
 	if err := my.Write7BitEncodedInt(int32(size)); err != nil {
 		return err
