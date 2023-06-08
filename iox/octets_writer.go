@@ -63,6 +63,6 @@ func (my *OctetsWriter) Write7BitEncodedInt(d int32) error {
 	return my.stream.WriteByte(byte(num))
 }
 
-func (my *OctetsWriter) GetStream() *OctetsStream {
+func (my *OctetsWriter) Stream() *OctetsStream {
 	return my.stream
 }

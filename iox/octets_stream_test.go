@@ -65,3 +65,10 @@ func TestOctetsStream_Bytes(t *testing.T) {
 	var stream = &OctetsStream{}
 	stream.Bytes()
 }
+
+func TestOctetsStream_ReadInt32(t *testing.T) {
+	var stream = &OctetsStream{}
+	// stream里的数据为: 78, 97, 188, 0, 与charp中BinaryWriter中的是一样的
+	_ = stream.WriteInt32(12345678)
+	stream.Tidy()
+}
