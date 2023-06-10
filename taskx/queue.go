@@ -79,6 +79,6 @@ func (my *Queue) SendDelayed(delayed time.Duration, handler Handler) {
 func (my *Queue) checkQueueFull() {
 	var length = len(my.C)
 	if length == cap(my.C) {
-		my.errLogger.Printf("taskQueue is full, length=%d", length)
+		my.errLogger.Printf("taskQueue is full, length=%d\n", length)
 	}
 }
