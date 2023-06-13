@@ -52,7 +52,7 @@ func (my *OctetsWriter) WriteBytes(data []byte) error {
 	return my.stream.Write(data)
 }
 
-// Write7BitEncodedInt 开启整数压缩
+// Write7BitEncodedInt 开启整数压缩. 1byte<=127<2**7, 2byte<=16383<2**14
 func (my *OctetsWriter) Write7BitEncodedInt(d int32) error {
 	var num = uint32(d)
 	for num > 127 {
