@@ -43,6 +43,16 @@ func pkcs5Padding(ciphertext []byte, blockSize int) []byte {
 
 // trim padding tail
 func pkcs5Trimming(encrypt []byte) []byte {
-	var padding = encrypt[len(encrypt)-1]
-	return encrypt[:len(encrypt)-int(padding)]
+	var size = len(encrypt)
+	if size == 0 {
+		return encrypt
+	}
+
+	var padding = encrypt[size-1]
+	var upper = size - int(padding)
+	if upper < 0 {
+		return encrypt
+	}
+
+	return encrypt[:upper]
 }
