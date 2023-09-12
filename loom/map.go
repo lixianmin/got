@@ -34,7 +34,7 @@ Copyright (C) - All Rights Reserved
 var snapshotPool = newPool(8)
 var mapSharding = NewSharding()
 
-type ShardTable map[interface{}]interface{}
+type ShardTable map[interface{}]any
 
 type shardItem struct {
 	sync.RWMutex
@@ -48,9 +48,9 @@ type Map struct {
 }
 
 // Put 如果已经存在了相同key的value，则覆盖找返回以前存在的那一个值；否则返回nil
-func (my *Map) Put(key interface{}, value interface{}) interface{} {
+func (my *Map) Put(key any, value any) any {
 	var shard, normalizedKey = my.getShard(key)
-	var last interface{}
+	var last any
 	var has = false
 	shard.Lock()
 	{
@@ -67,9 +67,9 @@ func (my *Map) Put(key interface{}, value interface{}) interface{} {
 }
 
 // Remove 如果存在，则删除，并返回该值
-func (my *Map) Remove(key interface{}) interface{} {
+func (my *Map) Remove(key any) any {
 	var shard, normalizedKey = my.getShard(key)
-	var last interface{}
+	var last any
 	var has = false
 	shard.Lock()
 	{
@@ -84,19 +84,19 @@ func (my *Map) Remove(key interface{}) interface{} {
 }
 
 // Get1 如果map中存在，则返回；否则返回nil
-func (my *Map) Get1(key interface{}) interface{} {
+func (my *Map) Get1(key any) any {
 	var shard, normalizedKey = my.getShard(key)
 	var last, _ = my.getInner(shard, normalizedKey)
 	return last
 }
 
-func (my *Map) Get2(key interface{}) (interface{}, bool) {
+func (my *Map) Get2(key any) (any, bool) {
 	var shard, normalizedKey = my.getShard(key)
 	return my.getInner(shard, normalizedKey)
 }
 
-func (my *Map) getInner(shard *shardItem, key interface{}) (interface{}, bool) {
-	var last interface{}
+func (my *Map) getInner(shard *shardItem, key any) (any, bool) {
+	var last any
 	var has = false
 	shard.RLock()
 	{
@@ -107,7 +107,7 @@ func (my *Map) getInner(shard *shardItem, key interface{}) (interface{}, bool) {
 }
 
 // PutIfAbsent 这其实是一种get命令：如果key对应的value已经存在，则返回存在的value，不进行替换；如果不存在，就添加key和value，然后返回nil
-func (my *Map) PutIfAbsent(key interface{}, value interface{}) interface{} {
+func (my *Map) PutIfAbsent(key any, value any) any {
 	var shard, normalizedKey = my.getShard(key)
 	var last, has = my.getInner(shard, normalizedKey)
 	if has {
@@ -127,7 +127,7 @@ func (my *Map) PutIfAbsent(key interface{}, value interface{}) interface{} {
 }
 
 // ComputeIfAbsent 如果原来存在，则返回原来的值；否则使用creator创建一个新值，放到到map中，则返回它
-func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) interface{}) interface{} {
+func (my *Map) ComputeIfAbsent(key any, creator func(key any) any) any {
 	var shard, normalizedKey = my.getShard(key)
 	var last, has = my.getInner(shard, normalizedKey)
 	if has {
@@ -153,7 +153,7 @@ func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) in
 
 // 感觉这个方法不应该被开出来，不记得当时写这个方法用来处理哪个项目的问题的，先关闭，有问题再说
 //// 为什么会有这么奇怪的一个方法？有时，我们需要在锁定某个key的情况下执行某些操作，防止在操作的过程中该key被插入导致不一致性
-//func (my *Map) WithLock(key interface{}, handler func(table ShardTable)) {
+//func (my *Map) WithLock(key any, handler func(table ShardTable)) {
 //	var shard, _ = my.getShard(key)
 //	shard.Lock()
 //	defer shard.Unlock() // 用defer是因为不知道handler会不会panic
@@ -161,7 +161,7 @@ func (my *Map) ComputeIfAbsent(key interface{}, creator func(key interface{}) in
 //}
 
 // Range 使用数据快照支持遍历过程，因为无法保证遍历过程中回调方法不调用Add, Remove等方法，必须得避免死锁
-func (my *Map) Range(handler func(key interface{}, value interface{})) {
+func (my *Map) Range(handler func(key any, value any)) {
 	if handler == nil {
 		return
 	}
@@ -193,7 +193,7 @@ func (my *Map) Range(handler func(key interface{}, value interface{})) {
 	}
 }
 
-func safeRangeHandler(f func(key interface{}, value interface{}), key interface{}, value interface{}) {
+func safeRangeHandler(f func(key any, value any), key any, value any) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println(r)
@@ -212,7 +212,7 @@ func (my *Map) addSize(delta int64) {
 	atomic.AddInt64(&my.size, delta)
 }
 
-func (my *Map) getShard(key interface{}) (*shardItem, interface{}) {
+func (my *Map) getShard(key any) (*shardItem, any) {
 	var pData = my.getShardData()
 	var index, normalizedKey = mapSharding.GetShardingIndex(key)
 	var shard = (*pData)[index]

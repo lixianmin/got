@@ -31,7 +31,7 @@ func BenchmarkLoomMap_ComputeIfAbsent(b *testing.B) {
 
 	const max = benchCount
 	for i := 0; i < max; i++ {
-		m.ComputeIfAbsent(i, func(key interface{}) interface{} {
+		m.ComputeIfAbsent(i, func(key any) any {
 			return key
 		})
 	}

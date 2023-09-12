@@ -28,7 +28,7 @@ func (my *Sharding) GetShardingCount() int {
 	return my.shardingCount
 }
 
-func (my *Sharding) GetShardingIndex(key interface{}) (index int, normalizedKey interface{}) {
+func (my *Sharding) GetShardingIndex(key any) (index int, normalizedKey any) {
 	var shardingCount = my.shardingCount
 
 	var next int64
