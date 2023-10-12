@@ -1,7 +1,6 @@
 package loom
 
 import (
-	"github.com/lixianmin/got/mathx"
 	"runtime"
 )
 
@@ -13,7 +12,7 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 // 有些cpu可能是64核的，创建太多的sharding数可能没有太大的意义
-var defaultShardingCount = mathx.MinI(convertPowerOfTwo(runtime.NumCPU()), 32)
+var defaultShardingCount = min(convertPowerOfTwo(runtime.NumCPU()), 32)
 
 type shardingArguments struct {
 	shardingCount int

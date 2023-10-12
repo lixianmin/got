@@ -1,3 +1,3 @@
 module github.com/lixianmin/got
 
-go 1.18
+go 1.21

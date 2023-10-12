@@ -7,54 +7,6 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-func MinI32(a int32, b int32) int32 {
-	if a > b {
-		return b
-	}
-
-	return a
-}
-
-func MinI64(a int64, b int64) int64 {
-	if a > b {
-		return b
-	}
-
-	return a
-}
-
-func MinI(a int, b int) int {
-	if a > b {
-		return b
-	}
-
-	return a
-}
-
-func MaxI(a int, b int) int {
-	if a < b {
-		return b
-	}
-
-	return a
-}
-
-func MaxI32(a int32, b int32) int32 {
-	if a < b {
-		return b
-	}
-
-	return a
-}
-
-func MaxI64(a int64, b int64) int64 {
-	if a < b {
-		return b
-	}
-
-	return a
-}
-
 func ClampI32(v, min, max int32) int32 {
 	if v < min {
 		return min
