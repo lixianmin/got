@@ -44,7 +44,15 @@ func ForEachLine(fin io.Reader, handler func(line string) bool) error {
 			return err
 		}
 
-		var line = string(buffer[:len(buffer)-1])
+		var length = len(buffer)
+		var lastIndex = length - 1 // \n的位置
+
+		// windows下也需要处理 \r
+		if length >= 2 && buffer[lastIndex-1] == '\r' {
+			lastIndex--
+		}
+
+		var line = string(buffer[:lastIndex])
 		if ok := handler(line); !ok { // 只要handler()返回false，就中止
 			return nil
 		}
