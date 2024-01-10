@@ -1,6 +1,7 @@
 package ants
 
 import (
+	"context"
 	"github.com/lixianmin/got/loom"
 )
 
@@ -40,13 +41,13 @@ func (my *poolImpl) sendInnerCallback(callback func()) {
 	}
 }
 
-func (my *poolImpl) goDispatchTask() {
+func (my *poolImpl) goDispatchTask(ctx context.Context) {
 	defer loom.DumpIfPanic()
 
 	for {
 		select {
 		case task := <-my.taskChan:
-			task.run()
+			task.run(ctx)
 		case <-my.closeChan:
 			return
 		}

@@ -2,8 +2,10 @@ package ants
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 )
@@ -74,7 +76,31 @@ func TestPool_HandleTooLongTime(t *testing.T) {
 
 	var endTime = time.Now()
 	var past = endTime.Sub(startTime)
-	if past > 2*time.Second || err != nil && err != context.DeadlineExceeded {
+	if past > 2*time.Second || err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		t.Fail()
 	}
+}
+
+func TestPool_ContextBuilder(t *testing.T) {
+	var key = struct{}{}
+	var counter = 0
+	var pool = NewPool(WithSize(4), WithContextBuilder(func() context.Context {
+		counter++
+		return context.WithValue(context.Background(), key, counter)
+	}))
+
+	var wg sync.WaitGroup
+	var size = 10
+	wg.Add(size)
+
+	for i := 0; i < size; i++ {
+		_ = pool.Send(func(ctx context.Context) (interface{}, error) {
+			fmt.Printf("---> %v\n", ctx.Value(key))
+			wg.Done()
+			return nil, nil
+		})
+	}
+
+	wg.Wait()
+	runtime.GC()
 }

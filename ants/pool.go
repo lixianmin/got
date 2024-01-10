@@ -12,7 +12,7 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type Handler func(ctx context.Context) (interface{}, error)
+type Handler func(ctx context.Context) (any, error)
 
 type Pool interface {
 	Send(handler Handler, options ...TaskOption) Task
@@ -32,7 +32,8 @@ func NewPool(options ...PoolOption) Pool {
 	}}
 
 	for i := 0; i < opts.size; i++ {
-		go my.goDispatchTask()
+		var ctx = opts.contextBuilder()
+		go my.goDispatchTask(ctx)
 		go my.goDispatchInnerCallback()
 	}
 
