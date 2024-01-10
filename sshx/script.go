@@ -61,7 +61,7 @@ func (my *Script) Run(args ...string) ([]byte, error) {
 	var output, err = my.runScript(args...)
 	if err != nil { // 主要的目的是『如果没有则创建』
 		var filename = my.filename
-		err = filex.WriteAllText(filename, my.script)
+		err = filex.WriteAllBytes(filename, convert.Bytes(my.script))
 		if err != nil {
 			return nil, err
 		}

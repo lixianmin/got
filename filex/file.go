@@ -3,7 +3,6 @@ package filex
 import (
 	"bufio"
 	"fmt"
-	"github.com/lixianmin/got/convert"
 	"io"
 	"os"
 )
@@ -85,7 +84,7 @@ func ReadAllLines(path string) ([]string, error) {
 	}
 }
 
-func WriteAllText(path string, text string) error {
+func WriteAllBytes(path string, data []byte) error {
 	var fout, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
@@ -93,7 +92,6 @@ func WriteAllText(path string, text string) error {
 
 	defer fout.Close()
 
-	var data = convert.Bytes(text)
 	_, err = fout.Write(data)
 	return err
 }
