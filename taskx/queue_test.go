@@ -16,7 +16,7 @@ Copyright (C) - All Rights Reserved
 
 func TestNewTaskQueue(t *testing.T) {
 	var wc loom.WaitClose
-	var tasks = NewQueue(WithSize(8), WithCloseChan(wc.C()), WithErrorLogger(func(format string, args ...interface{}) {
+	var tasks = NewQueue(WithSize(8), WithCloseChan(wc.C()), WithErrorLogger(func(format string, args ...any) {
 		fmt.Printf(format, args...)
 	}))
 
@@ -41,7 +41,7 @@ func TestNewTaskQueue(t *testing.T) {
 		}
 	}()
 
-	tasks.SendCallback(func(args interface{}) (result interface{}, err error) {
+	tasks.SendCallback(func(args any) (result any, err error) {
 		var fetus = args.(Fetus)
 		println("hello", fetus.counter)
 		return nil, nil
@@ -49,7 +49,7 @@ func TestNewTaskQueue(t *testing.T) {
 
 	tasks.SendCallback(nil).Get1()
 
-	result, _ := tasks.SendCallback(func(args interface{}) (interface{}, error) {
+	result, _ := tasks.SendCallback(func(args any) (any, error) {
 		time.Sleep(500 * time.Millisecond)
 		var fetus = args.(Fetus)
 		result := fmt.Sprintf("world %d", fetus.counter)
@@ -59,7 +59,7 @@ func TestNewTaskQueue(t *testing.T) {
 	println(result.(string))
 	_ = wc.Close(nil)
 
-	tasks.SendCallback(func(args interface{}) (result interface{}, err error) {
+	tasks.SendCallback(func(args any) (result any, err error) {
 		println("oh oops")
 		return nil, nil
 	})
@@ -71,7 +71,7 @@ func TestTaskQueue_SendDelayed(t *testing.T) {
 	var delayedTime = 5 * time.Second
 	var startTime = time.Now()
 
-	tasks.SendDelayed(3*time.Second, func(args interface{}) (i interface{}, e error) {
+	tasks.SendDelayed(3*time.Second, func(args any) (i any, e error) {
 		fmt.Printf("--> args=%v, delayedTime=3s, deltaTime=%s\n", args, time.Since(startTime).String())
 		return nil, nil
 	})

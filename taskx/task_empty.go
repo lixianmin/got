@@ -9,14 +9,14 @@ Copyright (C) - All Rights Reserved
 
 type taskEmpty struct{}
 
-func (task taskEmpty) Do(args interface{}) error {
+func (task taskEmpty) Do(args any) error {
 	return nil
 }
 
-func (task taskEmpty) Get1() interface{} {
+func (task taskEmpty) Get1() any {
 	return nil
 }
 
-func (task taskEmpty) Get2() (interface{}, error) {
+func (task taskEmpty) Get2() (any, error) {
 	return nil, nil
 }

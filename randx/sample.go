@@ -33,12 +33,12 @@ func (h *sampleHeap) Len() int {
 	return len(*h)
 }
 
-func (h *sampleHeap) Pop() (v interface{}) {
+func (h *sampleHeap) Pop() (v any) {
 	*h, v = (*h)[:h.Len()-1], (*h)[h.Len()-1]
 	return
 }
 
-func (h *sampleHeap) Push(v interface{}) {
+func (h *sampleHeap) Push(v any) {
 	*h = append(*h, v.(sampleHeapItem))
 }
 

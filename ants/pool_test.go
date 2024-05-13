@@ -20,7 +20,7 @@ Copyright (C) - All Rights Reserved
 func TestPool_Send(t *testing.T) {
 	var pool = NewPool(WithSize(8))
 
-	var task = pool.Send(func(ctx context.Context) (interface{}, error) {
+	var task = pool.Send(func(ctx context.Context) (any, error) {
 		time.Sleep(time.Second / 2)
 		return nil, nil
 	}, WithTimeout(time.Second))
@@ -34,7 +34,7 @@ func TestPool_GetMultiTimes(t *testing.T) {
 	const retry = 3
 	var pool = NewPool(WithSize(8))
 	var counter = 0
-	var task = pool.Send(func(ctx context.Context) (interface{}, error) {
+	var task = pool.Send(func(ctx context.Context) (any, error) {
 		counter++
 		fmt.Println(counter)
 
@@ -55,7 +55,7 @@ func TestPool_GetMultiTimes(t *testing.T) {
 func TestPool_HandleTooLongTime(t *testing.T) {
 	var pool = NewPool(WithSize(5))
 	var startTime = time.Now()
-	var task = pool.Send(func(ctx context.Context) (interface{}, error) {
+	var task = pool.Send(func(ctx context.Context) (any, error) {
 		time.Sleep(time.Second)
 		return nil, nil
 	}, WithTimeout(200*time.Millisecond), WithRetry(3))
@@ -64,7 +64,7 @@ func TestPool_HandleTooLongTime(t *testing.T) {
 
 	var tasks = make([]Task, 0)
 	for i := 0; i < 100; i++ {
-		tasks = append(tasks, pool.Send(func(ctx context.Context) (interface{}, error) {
+		tasks = append(tasks, pool.Send(func(ctx context.Context) (any, error) {
 			time.Sleep(10 * time.Millisecond)
 			return nil, nil
 		}, WithTimeout(5*time.Millisecond), WithRetry(3)))
@@ -94,7 +94,7 @@ func TestPool_ContextBuilder(t *testing.T) {
 	wg.Add(size)
 
 	for i := 0; i < size; i++ {
-		_ = pool.Send(func(ctx context.Context) (interface{}, error) {
+		_ = pool.Send(func(ctx context.Context) (any, error) {
 			fmt.Printf("---> %v\n", ctx.Value(key))
 			wg.Done()
 			return nil, nil

@@ -25,7 +25,7 @@ type Queue struct {
 }
 
 type node struct {
-	value interface{}
+	value any
 	next  unsafe.Pointer
 }
 
@@ -36,7 +36,7 @@ func NewQueue() *Queue {
 }
 
 // Push puts the given value v at the tail of the queue.
-func (q *Queue) Push(v interface{}) {
+func (q *Queue) Push(v any) {
 	n := &node{value: v}
 	for {
 		tail := queueLoad(&q.tail)
@@ -57,7 +57,7 @@ func (q *Queue) Push(v interface{}) {
 
 // Pop removes and returns the value at the head of the queue.
 // It returns nil if the queue is empty.
-func (q *Queue) Pop() interface{} {
+func (q *Queue) Pop() any {
 	for {
 		head := queueLoad(&q.head)
 		tail := queueLoad(&q.tail)

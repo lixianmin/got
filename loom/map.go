@@ -16,7 +16,7 @@ author:     lixianmin
 2. 提供像ComputeIfAbsent()这样的延迟初始化方法
 
 todo 是否将loom.Map分uint32, uint64与string，分类型初始化？
-	1. 这对速度和内存占用可能会是一个bonus，我们通常只需要value是interface{}，而key不需要太复杂的类型（本来我们也没支持几种类型）；
+	1. 这对速度和内存占用可能会是一个bonus，我们通常只需要value是any，而key不需要太复杂的类型（本来我们也没支持几种类型）；
 	2. 这会导致同时只能存储单一的key类型，比如只能存储int或string。不过，大部分情况下我们的key的确是单一类型；
 	3. 编译器不能帮助发现错误，这有可能会导致运行时的bug
 	4. 如果分为IntMap与StringMap的话，则会导致相同的代码写好两遍，并给使用和维护带来不便
@@ -34,7 +34,7 @@ Copyright (C) - All Rights Reserved
 var snapshotPool = newPool(8)
 var mapSharding = NewSharding()
 
-type ShardTable map[interface{}]any
+type ShardTable map[any]any
 
 type shardItem struct {
 	sync.RWMutex

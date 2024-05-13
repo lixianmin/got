@@ -25,11 +25,11 @@ func newTaskDelayed(queue *Queue, delayed time.Duration, handler Handler) *taskD
 	return task
 }
 
-func (task *taskDelayed) Do(args interface{}) error {
+func (task *taskDelayed) Do(args any) error {
 	task.queue.SendCallback(task.handler)
 	return nil
 }
 
-func (task *taskDelayed) Less(other interface{}) bool {
+func (task *taskDelayed) Less(other any) bool {
 	return task.triggerTime < other.(*taskDelayed).triggerTime
 }

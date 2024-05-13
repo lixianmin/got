@@ -12,7 +12,7 @@ Copyright (C) - All Rights Reserved
 var _toJson = json.Marshal
 var _fromJson = json.Unmarshal
 
-func InitJson(marshal func(v interface{}) ([]byte, error), unmarshal func(data []byte, v interface{}) error) {
+func InitJson(marshal func(v any) ([]byte, error), unmarshal func(data []byte, v any) error) {
 	if marshal == nil {
 		panic("marshal is nil")
 	}
@@ -25,19 +25,19 @@ func InitJson(marshal func(v interface{}) ([]byte, error), unmarshal func(data [
 	_fromJson = unmarshal
 }
 
-func ToJsonE(v interface{}) ([]byte, error) {
+func ToJsonE(v any) ([]byte, error) {
 	return _toJson(v)
 }
 
-func ToJson(v interface{}) []byte {
+func ToJson(v any) []byte {
 	var result, _ = _toJson(v)
 	return result
 }
 
-func FromJsonE(data []byte, v interface{}) error {
+func FromJsonE(data []byte, v any) error {
 	return _fromJson(data, v)
 }
 
-func FromJson(data []byte, v interface{}) {
+func FromJson(data []byte, v any) {
 	_ = _fromJson(data, v)
 }

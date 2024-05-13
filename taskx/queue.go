@@ -18,7 +18,7 @@ Copyright (C) - All Rights Reserved
 
 var globalDelayedQueue = newDelayedQueue()
 
-type Handler func(args interface{}) (interface{}, error)
+type Handler func(args any) (any, error)
 
 type Queue struct {
 	closeChan chan struct{}

@@ -12,7 +12,7 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 // 使用cast库代替
-//func ToString(v interface{}) string {
+//func ToString(v any) string {
 //	switch v := v.(type) {
 //	case []byte:
 //		return *(*string)(unsafe.Pointer(&v))

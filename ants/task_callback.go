@@ -17,7 +17,7 @@ type taskCallback struct {
 	pool    *poolImpl
 	handler Handler
 
-	result interface{}
+	result any
 	err    error
 	wg     sync.WaitGroup
 }

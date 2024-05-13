@@ -10,15 +10,15 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type taskCallback struct {
-	handler   func(args interface{}) (interface{}, error)
+	handler   func(args any) (any, error)
 	wg        sync.WaitGroup
-	result    interface{}
+	result    any
 	err       error
 	isHandled bool
 }
 
 // Do Do()方法通常是业务代码调用的, 因此可能会被重复调用多次
-func (task *taskCallback) Do(args interface{}) error {
+func (task *taskCallback) Do(args any) error {
 	task.result, task.err = task.handler(args)
 
 	// 1. 只有第一次调用handler时调用wg.Done(), 防止多次调用导致panic
@@ -33,12 +33,12 @@ func (task *taskCallback) Do(args interface{}) error {
 	return task.err
 }
 
-func (task *taskCallback) Get1() interface{} {
+func (task *taskCallback) Get1() any {
 	task.wg.Wait()
 	return task.result
 }
 
-func (task *taskCallback) Get2() (interface{}, error) {
+func (task *taskCallback) Get2() (any, error) {
 	task.wg.Wait()
 	return task.result, task.err
 }

@@ -12,7 +12,7 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 // 将keys和values同步排序
-func SliceBy(keys interface{}, values interface{}, less func(i, j int) bool) {
+func SliceBy(keys any, values any, less func(i, j int) bool) {
 	var keyValues = reflect.ValueOf(keys)
 	var valValues = reflect.ValueOf(values)
 

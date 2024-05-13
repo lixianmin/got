@@ -52,7 +52,7 @@ func TestMap_PutStringAndIntKeys(t *testing.T) {
 	m.Put("hello", "world")
 
 	const intKey = 1029
-	m.ComputeIfAbsent(intKey, func(key interface{}) interface{} {
+	m.ComputeIfAbsent(intKey, func(key any) any {
 		return key
 	})
 
@@ -80,7 +80,7 @@ func TestMap_ComputeIfAbsent(t *testing.T) {
 
 	const max2 = 2000
 	for i := max / 2; i < max2; i++ {
-		m.ComputeIfAbsent(i, func(key interface{}) interface{} {
+		m.ComputeIfAbsent(i, func(key any) any {
 			return key.(int) * 2
 		})
 	}
@@ -150,7 +150,7 @@ func TestMap_Range(t *testing.T) {
 	var m Map
 	const max = 1000
 
-	m.Range(func(key interface{}, value interface{}) {
+	m.Range(func(key any, value any) {
 
 	})
 
@@ -159,7 +159,7 @@ func TestMap_Range(t *testing.T) {
 	}
 
 	var counter = 0
-	m.Range(func(key interface{}, value interface{}) {
+	m.Range(func(key any, value any) {
 		counter += 1
 		//fmt.Println(key, value)
 	})

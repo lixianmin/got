@@ -12,12 +12,13 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-type Loader = func(key interface{}) (interface{}, error)
+type Loader = func(key any) (any, error)
 
 type Cache interface {
-	Load(key interface{}, loader Loader) *Future
-	Set(key interface{}, value interface{}, err error)
-	Get(key interface{}) interface{}
+	Load(key any, loader Loader) *Future
+	Set(key any, value any, err error)
+	Get1(key any) any
+	Get2(key any) (any, error)
 }
 
 type wrapper struct {
@@ -37,7 +38,7 @@ func NewCache(opts ...Option) Cache {
 	var shardingCount = cacheSharding.GetShardingCount()
 	my.futures = make([]*cacheFuture, shardingCount)
 	for i := 0; i < shardingCount; i++ {
-		my.futures[i] = &cacheFuture{d: make(map[interface{}]*Future, 4)}
+		my.futures[i] = &cacheFuture{d: make(map[any]*Future, 4)}
 	}
 
 	my.startJobGoroutines()

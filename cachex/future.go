@@ -15,7 +15,7 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type Future struct {
-	value       interface{}
+	value       any
 	err         error
 	updateTime  unsafe.Pointer
 	predecessor unsafe.Pointer
@@ -31,18 +31,18 @@ func newFuture(predecessor *Future) *Future {
 	return item
 }
 
-func (my *Future) Get1() interface{} {
+func (my *Future) Get1() any {
 	my.wg.Wait()
 	return my.value
 }
 
-func (my *Future) Get2() (interface{}, error) {
+func (my *Future) Get2() (any, error) {
 	my.wg.Wait()
 	return my.value, my.err
 }
 
 // 这个方法只会被调用一次, 这个特别重要, 因为wg.Done()如果调用2次会panic
-func (my *Future) setValue(value interface{}, err error) {
+func (my *Future) setValue(value any, err error) {
 	my.value = value
 	my.err = err
 

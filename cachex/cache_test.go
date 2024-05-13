@@ -21,27 +21,27 @@ func TestCache_Load(t *testing.T) {
 	var cache = NewCache(WithParallel(4), WithExpire(10*time.Second, time.Second))
 	var start = time.Now()
 
-	var f1 = cache.Load(1, func(key interface{}) (interface{}, error) {
+	var f1 = cache.Load(1, func(key any) (any, error) {
 		time.Sleep(2 * time.Second)
 		return 1, nil
 	})
 
-	var f2 = cache.Load(2, func(key interface{}) (interface{}, error) {
+	var f2 = cache.Load(2, func(key any) (any, error) {
 		time.Sleep(4 * time.Second)
 		return 2, nil
 	})
 
-	var f3 = cache.Load(3, func(key interface{}) (interface{}, error) {
+	var f3 = cache.Load(3, func(key any) (any, error) {
 		time.Sleep(6 * time.Second)
 		return 3, nil
 	})
 
-	var f4 = cache.Load(4, func(key interface{}) (interface{}, error) {
+	var f4 = cache.Load(4, func(key any) (any, error) {
 		time.Sleep(4)
 		return 4, nil
 	})
 
-	var f5 = cache.Load(4, func(key interface{}) (interface{}, error) {
+	var f5 = cache.Load(4, func(key any) (any, error) {
 		time.Sleep(4 * time.Second)
 		return 5, nil
 	})

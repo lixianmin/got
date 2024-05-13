@@ -37,7 +37,7 @@ func createOptions(optionList []Option) options {
 
 	// 默认创建一个打印到stderr的errLogger
 	if opts.errLogger == nil {
-		opts.errLogger = std.LoggerFunc(func(format string, args ...interface{}) {
+		opts.errLogger = std.LoggerFunc(func(format string, args ...any) {
 			var message = fmt.Sprintf(format, args...)
 			_, _ = os.Stderr.WriteString(message)
 		})

@@ -12,17 +12,17 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type Comparable interface {
-	Less(other interface{}) bool
+	Less(other any) bool
 }
 
 type sorter []Comparable
 
 // Push Implement heap.Interface: Push, Pop, Len, Less, Swap
-func (s *sorter) Push(x interface{}) {
+func (s *sorter) Push(x any) {
 	*s = append(*s, x.(Comparable))
 }
 
-func (s *sorter) Pop() interface{} {
+func (s *sorter) Pop() any {
 	n := len(*s)
 	if n > 0 {
 		x := (*s)[n-1]

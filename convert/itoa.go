@@ -9,7 +9,7 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-func AppendInt(b []byte, v interface{}, base int) []byte {
+func AppendInt(b []byte, v any, base int) []byte {
 	switch v := v.(type) {
 	case int:
 		return strconv.AppendInt(b, int64(v), base)

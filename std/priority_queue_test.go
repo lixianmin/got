@@ -16,7 +16,7 @@ type Item struct {
 	priority int
 }
 
-func (my *Item) Less(other interface{}) bool {
+func (my *Item) Less(other any) bool {
 	return my.priority < other.(*Item).priority
 }
 

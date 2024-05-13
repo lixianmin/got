@@ -24,13 +24,13 @@ var cacheSharding = loom.NewSharding()
 
 type cacheJob struct {
 	loader Loader
-	key    interface{}
+	key    any
 	future *Future
 }
 
 type cacheFuture struct {
 	sync.Mutex
-	d map[interface{}]*Future
+	d map[any]*Future
 }
 
 type cacheImpl struct {
@@ -67,7 +67,7 @@ func (my *cacheImpl) startJobGoroutines() {
 }
 
 // Set 通常value和err只有一个值是有效的. value有效意味着是正常值, err有效意味着是错误值
-func (my *cacheImpl) Set(key interface{}, value interface{}, err error) {
+func (my *cacheImpl) Set(key any, value any, err error) {
 	assert(key != nil, "key is nil")
 	var index, _ = cacheSharding.GetShardingIndex(key)
 	var futures = my.futures[index]
@@ -81,7 +81,12 @@ func (my *cacheImpl) Set(key interface{}, value interface{}, err error) {
 	futures.Unlock()
 }
 
-func (my *cacheImpl) Get(key interface{}) interface{} {
+func (my *cacheImpl) Get1(key any) any {
+	var v, _ = my.Get2(key)
+	return v
+}
+
+func (my *cacheImpl) Get2(key any) (any, error) {
 	assert(key != nil, "key is nil")
 	var index, _ = cacheSharding.GetShardingIndex(key)
 	var futures = my.futures[index]
@@ -95,13 +100,13 @@ func (my *cacheImpl) Get(key interface{}) interface{} {
 	//fmt.Printf("status=%v \n", status)
 	switch status {
 	case kFutureGood: // status == good: 意味着future本身还没有加载完呢, 但这个future有可能有可勉强使用的predecessor
-		return my.fetchIfFutureStatusGood(future).Get1()
+		return my.fetchIfFutureStatusGood(future).Get2()
 	case kFutureExpired: // status == expired: 说明last还凑合着能用
-		return future.Get1()
+		return future.Get2()
 	}
 
 	// status == empty || status == rotted
-	return nil
+	return nil, nil
 }
 
 // Load 设计考量：
@@ -109,7 +114,7 @@ func (my *cacheImpl) Get(key interface{}) interface{} {
 // 2. Load()方法自己不会阻塞，直接返回Future对象
 // 3. 如果并发请求Load()方法，不会重复创建，会返回同一个Future对象
 // 4. 被移除的Future对象，如果已经被三方拿到了，可以正常调用Get()方法，如果内部正在加载，会正常加载完成
-func (my *cacheImpl) Load(key interface{}, loader Loader) *Future {
+func (my *cacheImpl) Load(key any, loader Loader) *Future {
 	assert(key != nil, "key is nil")
 	assert(loader != nil, "loader is nil")
 
@@ -169,7 +174,7 @@ func (my *cacheImpl) sendJob(job cacheJob) {
 	}
 }
 
-//func (my *cacheImpl) Load(key interface{}, loader Loader) *Future {
+//func (my *cacheImpl) Load(key any, loader Loader) *Future {
 //	assert(key != nil, "key is nil")
 //	assert(loader != nil, "loader is nil")
 //
