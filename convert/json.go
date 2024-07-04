@@ -34,10 +34,19 @@ func ToJson(v any) []byte {
 	return result
 }
 
+func ToJsonS(v any) string {
+	var result, _ = _toJson(v)
+	return String(result)
+}
+
 func FromJsonE(data []byte, v any) error {
 	return _fromJson(data, v)
 }
 
 func FromJson(data []byte, v any) {
 	_ = _fromJson(data, v)
+}
+
+func FromJsonS(data string, v any) {
+	_ = _fromJson(Bytes(data), v)
 }
