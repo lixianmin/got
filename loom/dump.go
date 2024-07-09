@@ -41,12 +41,6 @@ func DumpIfPanic() {
 
 	fmt.Println("dump to file ", logFilePath)
 
-	f, err := os.Create(logFilePath)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-
 	// 输出panic信息
 	const lineSeparator = "------------------------------------\r\n"
 	var data = make([]byte, 0, 1024)
@@ -55,12 +49,15 @@ func DumpIfPanic() {
 	data = append(data, lineSeparator...)
 	data = append(data, debug.Stack()...) // 调用栈信息
 
-	// 输出
-	_, _ = f.Write(data)
+	// 输出日志
+	_ = os.WriteFile(logFilePath, data, 0644)
+	fmt.Println(string(data))
+
+	// 处理回调
 	if nil != dumpHandler {
 		dumpHandler(data)
 	}
 
-	// 直接退出？
-	os.Exit(1)
+	// 使用特殊的退出标记
+	os.Exit(1029)
 }
