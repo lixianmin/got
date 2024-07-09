@@ -85,13 +85,5 @@ func ReadAllLines(path string) ([]string, error) {
 }
 
 func WriteAllBytes(path string, data []byte) error {
-	var fout, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-
-	defer fout.Close()
-
-	_, err = fout.Write(data)
-	return err
+	return os.WriteFile(path, data, 0644)
 }
