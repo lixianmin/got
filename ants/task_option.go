@@ -13,16 +13,18 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 type taskOptions struct {
-	timeout time.Duration
-	retry   int
+	timeout       time.Duration
+	retry         int
+	discardOnBusy bool
 }
 
 type TaskOption func(*taskOptions)
 
 func createTaskOptions(optionList []TaskOption) taskOptions {
 	var opts = taskOptions{
-		timeout: 365 * timex.Day, // 默认给一个∞
-		retry:   1,
+		timeout:       365 * timex.Day, // 默认给一个∞
+		retry:         1,
+		discardOnBusy: true,
 	}
 
 	for _, opt := range optionList {
@@ -45,5 +47,11 @@ func WithRetry(count int) TaskOption {
 		if count > 0 {
 			opts.retry = count
 		}
+	}
+}
+
+func WithDiscardOnBusy(discardOnBusy bool) TaskOption {
+	return func(opts *taskOptions) {
+		opts.discardOnBusy = discardOnBusy
 	}
 }

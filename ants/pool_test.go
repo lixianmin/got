@@ -104,3 +104,27 @@ func TestPool_ContextBuilder(t *testing.T) {
 	wg.Wait()
 	runtime.GC()
 }
+
+func TestPool_DiscardOnBusy(t *testing.T) {
+	var pool = NewPool()
+
+	var wg sync.WaitGroup
+	var size = 2
+	wg.Add(size * 2)
+
+	for i := 0; i < size*2; i++ {
+		var task = pool.Send(func(ctx context.Context) (any, error) {
+			time.Sleep(time.Second)
+			wg.Done()
+			return nil, nil
+		})
+
+		if discard, ok := task.(*taskDiscard); ok {
+			wg.Done()
+			var _, err = discard.Get2()
+			fmt.Println(err)
+		}
+	}
+
+	wg.Wait()
+}

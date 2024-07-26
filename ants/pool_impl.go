@@ -18,14 +18,17 @@ type poolImpl struct {
 	closeChan         chan struct{}
 }
 
-func (my *poolImpl) Send(handler Handler, options ...TaskOption) Task {
+func (my *poolImpl) Send(handler Handler, opts ...TaskOption) Task {
 	if handler == nil {
 		panic("handler is nil")
 	}
 
-	var opts = createTaskOptions(options)
-	var task = newTaskCallback(my, handler, opts)
+	var options = createTaskOptions(opts)
+	if options.discardOnBusy && len(my.taskChan) == cap(my.taskChan) {
+		return newTaskDiscard()
+	}
 
+	var task = newTaskCallback(my, handler, options)
 	select {
 	case my.taskChan <- task:
 	case <-my.closeChan:
