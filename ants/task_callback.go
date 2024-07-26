@@ -43,7 +43,7 @@ func (my *taskCallback) Get2() (any, error) {
 	return my.result, my.err
 }
 
-func (my *taskCallback) Error() error {
+func (my *taskCallback) Err() error {
 	return my.err
 }
 

@@ -27,7 +27,7 @@ func (my *taskDiscard) Get2() (any, error) {
 	return nil, errDiscard
 }
 
-func (my *taskDiscard) Error() error {
+func (my *taskDiscard) Err() error {
 	return errDiscard
 }
 

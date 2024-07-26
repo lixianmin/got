@@ -12,6 +12,6 @@ Copyright (C) - All Rights Reserved
 type Task interface {
 	Get1() any
 	Get2() (any, error)
-	Error() error
+	Err() error
 	run(ctx context.Context)
 }
