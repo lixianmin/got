@@ -43,6 +43,10 @@ func (my *taskCallback) Get2() (any, error) {
 	return my.result, my.err
 }
 
+func (my *taskCallback) Error() error {
+	return my.err
+}
+
 func (my *taskCallback) run(ctx context.Context) {
 	defer my.wg.Done()
 

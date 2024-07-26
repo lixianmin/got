@@ -16,7 +16,6 @@ type taskDiscard struct {
 
 func newTaskDiscard() *taskDiscard {
 	var my = &taskDiscard{}
-
 	return my
 }
 
@@ -26,6 +25,10 @@ func (my *taskDiscard) Get1() any {
 
 func (my *taskDiscard) Get2() (any, error) {
 	return nil, errDiscard
+}
+
+func (my *taskDiscard) Error() error {
+	return errDiscard
 }
 
 func (my *taskDiscard) run(ctx context.Context) {
