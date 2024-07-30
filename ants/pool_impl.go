@@ -25,6 +25,11 @@ func (my *poolImpl) Send(handler Handler, opts ...TaskOption) Task {
 
 	var options = createTaskOptions(opts)
 	if options.discardOnBusy && len(my.taskChan) == cap(my.taskChan) {
+		var onError = options.onError
+		if onError != nil {
+			onError(errDiscard)
+		}
+
 		return newTaskDiscard()
 	}
 

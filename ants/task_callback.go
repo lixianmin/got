@@ -56,6 +56,12 @@ func (my *taskCallback) run(ctx context.Context) {
 			return
 		}
 	}
+
+	// 处理err情况
+	var onError = my.taskOptions.onError
+	if onError != nil {
+		onError(my.err)
+	}
 }
 
 func (my *taskCallback) runTaskOnce(ctx context.Context) {

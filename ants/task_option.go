@@ -16,6 +16,7 @@ type taskOptions struct {
 	timeout       time.Duration
 	retry         int
 	discardOnBusy bool
+	onError       func(error)
 }
 
 type TaskOption func(*taskOptions)
@@ -25,6 +26,7 @@ func createTaskOptions(optionList []TaskOption) taskOptions {
 		timeout:       365 * timex.Day, // 默认给一个∞
 		retry:         1,
 		discardOnBusy: true,
+		onError:       nil,
 	}
 
 	for _, opt := range optionList {
@@ -53,5 +55,11 @@ func WithRetry(count int) TaskOption {
 func WithDiscardOnBusy(discardOnBusy bool) TaskOption {
 	return func(opts *taskOptions) {
 		opts.discardOnBusy = discardOnBusy
+	}
+}
+
+func WithError(onError func(error)) TaskOption {
+	return func(opts *taskOptions) {
+		opts.onError = onError
 	}
 }
