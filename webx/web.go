@@ -14,12 +14,12 @@ author:     lixianmin
 Copyright (C) - All Rights Reserved
 *********************************************************************/
 
-func Get(url string, options ...Option) ([]byte, error) {
-	return Request(context.Background(), http.MethodGet, url, options...)
+func Get(ctx context.Context, url string, options ...Option) ([]byte, error) {
+	return Request(ctx, http.MethodGet, url, options...)
 }
 
-func Post(url string, options ...Option) ([]byte, error) {
-	return Request(context.Background(), http.MethodPost, url, options...)
+func Post(ctx context.Context, url string, options ...Option) ([]byte, error) {
+	return Request(ctx, http.MethodPost, url, options...)
 }
 
 func Request(ctx context.Context, method string, url string, options ...Option) ([]byte, error) {

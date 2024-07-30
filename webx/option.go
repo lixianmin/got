@@ -28,7 +28,7 @@ func emptyRequestBuilder(request *http.Request) string {
 /*
  1. get方式编码:
 
-	var result, err = Get(url, WithTimeout(time.Second*2), WithRequestBuilder(func(request *http.Request) string {
+	var result, err = webx.Get(context.Background(), url, webx.WithTimeout(time.Second*2), webx.WithRequestBuilder(func(request *http.Request) string {
 		var query = request.URL.Query()
 		query.Add("wd", "hello")
 		var payload = query.Encode()
@@ -38,20 +38,20 @@ func emptyRequestBuilder(request *http.Request) string {
 
  2. application/x-www-form-urlencoded方式编码:
 
-	var result, err = Post(url, WithRequestBuilder(func(request *http.Request) string {
+	var result, err = webx.Post(context.Background(), url, webx.WithRequestBuilder(func(request *http.Request) string {
 		var header = request.Header
 		header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 		var query = request.URL.Query()
 		query.Add("wd", "hello")
 		var payload = query.Encode()
-	
+
 		return payload
 	}))
 
  3.application/json编码方式:
 
-	var result, err = Post(url, WithRequestBuilder(func(request *http.Request) string {
+	var result, err = webx.Post(context.Background(), url, webx.WithRequestBuilder(func(request *http.Request) string {
 		var header = request.Header
 		header.Set("Content-Type", "application/json")
 

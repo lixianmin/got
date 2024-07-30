@@ -1,6 +1,7 @@
 package webx
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -16,7 +17,7 @@ Copyright (C) - All Rights Reserved
 
 func TestGet(t *testing.T) {
 	var url = "http://www.baidu.com"
-	var result, err = Get(url, WithTimeout(time.Second*2), WithRequestBuilder(func(request *http.Request) string {
+	var result, err = Get(context.Background(), url, WithTimeout(time.Second*2), WithRequestBuilder(func(request *http.Request) string {
 		var query = request.URL.Query()
 		query.Add("wd", "hello")
 		var payload = query.Encode()
@@ -28,7 +29,7 @@ func TestGet(t *testing.T) {
 
 func TestPostXWwwFormUrlencoded(t *testing.T) {
 	var url = "http://www.baidu.com/s"
-	var result, err = Post(url, WithRequestBuilder(func(request *http.Request) string {
+	var result, err = Post(context.Background(), url, WithRequestBuilder(func(request *http.Request) string {
 		var header = request.Header
 		header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -44,7 +45,7 @@ func TestPostXWwwFormUrlencoded(t *testing.T) {
 
 func TestPostJson(t *testing.T) {
 	var url = "http://www.baidu.com"
-	var result, err = Post(url, WithRequestBuilder(func(request *http.Request) string {
+	var result, err = Post(context.Background(), url, WithRequestBuilder(func(request *http.Request) string {
 		var header = request.Header
 		header.Set("Content-Type", "application/json")
 
