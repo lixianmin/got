@@ -79,7 +79,7 @@ func WithTimeout(timeout time.Duration) Option {
 func createOptions(optionList []Option) options {
 	var opts = options{
 		RequestBuilder: emptyRequestBuilder,
-		Timeout:        10 * time.Second,
+		Timeout:        60 * time.Second,
 	}
 
 	for _, opt := range optionList {
