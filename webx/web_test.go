@@ -16,8 +16,12 @@ Copyright (C) - All Rights Reserved
 *********************************************************************/
 
 func TestGet(t *testing.T) {
-	var url = "http://www.baidu.com"
-	var result, err = Get(context.Background(), url, WithTimeout(time.Second*2), WithRequestBuilder(func(request *http.Request) string {
+	var url = "https://www.baidu.com"
+
+	var ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	var result, err = Get(ctx, url, WithRequestBuilder(func(request *http.Request) string {
 		var query = request.URL.Query()
 		query.Add("wd", "hello")
 		var payload = query.Encode()

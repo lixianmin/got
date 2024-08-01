@@ -1,6 +1,7 @@
 package webx
 
 import (
+	"context"
 	"net/http"
 	"time"
 )
@@ -28,7 +29,10 @@ func emptyRequestBuilder(request *http.Request) string {
 /*
  1. get方式编码:
 
-	var result, err = webx.Get(context.Background(), url, webx.WithTimeout(time.Second*2), webx.WithRequestBuilder(func(request *http.Request) string {
+	var ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	var result, err = webx.Get(ctx, url, webx.WithRequestBuilder(func(request *http.Request) string {
 		var query = request.URL.Query()
 		query.Add("wd", "hello")
 		var payload = query.Encode()
@@ -68,22 +72,29 @@ func WithRequestBuilder(builder RequestBuilderFunc) Option {
 	}
 }
 
-func WithTimeout(timeout time.Duration) Option {
-	return func(opts *options) {
-		if timeout > 0 {
-			opts.Timeout = timeout
-		}
-	}
-}
+//func WithTimeout(timeout time.Duration) Option {
+//	return func(opts *options) {
+//		if timeout > 0 {
+//			opts.Timeout = timeout
+//		}
+//	}
+//}
 
-func createOptions(optionList []Option) options {
+func createOptions(ctx context.Context, optionList []Option) options {
 	var opts = options{
 		RequestBuilder: emptyRequestBuilder,
-		Timeout:        60 * time.Second,
+		Timeout:        10 * time.Second,
 	}
 
 	for _, opt := range optionList {
 		opt(&opts)
+	}
+
+	// 讲道理, 无论是在http.Client{}中设置Timeout, 还是设置具备超时的ctx, 都是起作用的. 实测发现它们返回的err不一样
+	// 如果ctx中设置了timeout, 则也使用这个timeout设置到http身上
+	var deadline, ok = ctx.Deadline()
+	if ok {
+		opts.Timeout = time.Until(deadline)
 	}
 
 	return opts
