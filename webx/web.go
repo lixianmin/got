@@ -23,36 +23,32 @@ func Post(ctx context.Context, url string, options ...Option) ([]byte, error) {
 }
 
 func Request(ctx context.Context, method string, url string, options ...Option) ([]byte, error) {
-	var opts = createOptions(ctx, options)
+	var opts = createOptions(options)
 
-	request, err1 := http.NewRequestWithContext(ctx, method, url, nil)
+	var request1, err1 = http.NewRequestWithContext(ctx, method, url, nil)
 	if err1 != nil {
 		return nil, err1
 	}
 
 	// 重新配置request
-	var payload = opts.RequestBuilder(request)
+	var payload = opts.RequestBuilder(request1)
 	if payload != "" {
 		switch method {
 		case http.MethodGet:
-			request.URL.RawQuery = payload
+			request1.URL.RawQuery = payload
 		case http.MethodPost:
-			request.Body = io.NopCloser(strings.NewReader(payload))
+			request1.Body = io.NopCloser(strings.NewReader(payload))
 		}
 	}
 
-	var client = http.Client{
-		Timeout: opts.Timeout,
-	}
-
-	response, err2 := client.Do(request)
+	var response2, err2 = opts.Client.Do(request1)
 	if err2 != nil {
 		return nil, err2
 	}
 
-	var responseBody = response.Body
+	var responseBody = response2.Body
 	defer responseBody.Close()
 
-	bodyBytes, err3 := io.ReadAll(responseBody)
-	return bodyBytes, err3
+	var bts3, err3 = io.ReadAll(responseBody)
+	return bts3, err3
 }

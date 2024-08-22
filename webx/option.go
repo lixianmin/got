@@ -1,9 +1,7 @@
 package webx
 
 import (
-	"context"
 	"net/http"
-	"time"
 )
 
 /********************************************************************
@@ -16,7 +14,7 @@ Copyright (C) - All Rights Reserved
 type RequestBuilderFunc func(request *http.Request) string
 type options struct {
 	RequestBuilder RequestBuilderFunc // 配置request
-	Timeout        time.Duration      // 控制从链接建立到返回的整个生命周期的时间
+	Client         *http.Client       // http.Client中有链接池 (可通过http.Transport配置), 因此不宜于每次请求生成一个http.Client对象
 }
 
 type Option func(*options)
@@ -72,30 +70,30 @@ func WithRequestBuilder(builder RequestBuilderFunc) Option {
 	}
 }
 
-//func WithTimeout(timeout time.Duration) Option {
-//	return func(opts *options) {
-//		if timeout > 0 {
-//			opts.Timeout = timeout
-//		}
-//	}
-//}
+func WithClient(client *http.Client) Option {
+	return func(opts *options) {
+		if client != nil {
+			opts.Client = client
+		}
+	}
+}
 
-func createOptions(ctx context.Context, optionList []Option) options {
+func createOptions(optionList []Option) options {
 	var opts = options{
 		RequestBuilder: emptyRequestBuilder,
-		Timeout:        10 * time.Second,
+		Client:         http.DefaultClient, // http.DefaultClient中没有设置Timeout
 	}
 
 	for _, opt := range optionList {
 		opt(&opts)
 	}
 
-	// 讲道理, 无论是在http.Client{}中设置Timeout, 还是设置具备超时的ctx, 都是起作用的. 实测发现它们返回的err不一样
-	// 如果ctx中设置了timeout, 则也使用这个timeout设置到http身上
-	var deadline, ok = ctx.Deadline()
-	if ok {
-		opts.Timeout = time.Until(deadline)
-	}
+	// // 讲道理, 无论是在http.Client{}中设置Timeout, 还是设置具备超时的ctx, 都是起作用的. 实测发现它们返回的err不一样
+	// // 如果ctx中设置了timeout, 则也使用这个timeout设置到http身上
+	// var deadline, ok = ctx.Deadline()
+	// if ok {
+	// 	opts.Timeout = time.Until(deadline)
+	// }
 
 	return opts
 }
