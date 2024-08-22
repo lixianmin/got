@@ -37,7 +37,7 @@ func TestCache_Load(t *testing.T) {
 	})
 
 	var f4 = cache.Load(4, func(key any) (any, error) {
-		time.Sleep(4)
+		time.Sleep(4 * time.Second)
 		return 4, nil
 	})
 
@@ -46,7 +46,7 @@ func TestCache_Load(t *testing.T) {
 		return 5, nil
 	})
 
-	fmt.Printf("cost time = %s\n", time.Now().Sub(start).String())
+	fmt.Printf("cost time = %s\n", time.Since(start).String())
 	if f4 != f5 {
 		t.Fatalf("f4=%d, f5=%d", f4.Get1(), f5.Get1())
 	}
@@ -56,7 +56,7 @@ func TestCache_Load(t *testing.T) {
 	}
 
 	fmt.Printf("f1=%d, f2=%d, f3=%d, f4=%d, f5=%d\n", f1.Get1(), f2.Get1(), f3.Get1(), f4.Get1(), f5.Get1())
-	fmt.Printf("cost time = %s\n", time.Now().Sub(start).String())
+	fmt.Printf("cost time = %s\n", time.Since(start).String())
 
 	time.Sleep(time.Minute)
 	//time.Sleep(time.Minute)
@@ -95,7 +95,7 @@ func TestCache_LoadMultiTimes(t *testing.T) {
 	})
 
 	fmt.Printf("f1=%d, f2=%d \n", f1.Get1(), f2.Get1())
-	fmt.Printf("cost time = %s\n", time.Now().Sub(start).String())
+	fmt.Printf("cost time = %s\n", time.Since(start).String())
 }
 
 func TestCache_Close(t *testing.T) {
@@ -103,7 +103,7 @@ func TestCache_Close(t *testing.T) {
 
 	// 期望这里不会卡死
 	for i := 0; i < 10; i++ {
-		cache.Load(i, func(key interface{}) (interface{}, error) {
+		cache.Load(i, func(key any) (any, error) {
 			return i, nil
 		})
 	}
@@ -185,13 +185,13 @@ func TestCache_Predecessor(t *testing.T) {
 func TestCache_GetSet(t *testing.T) {
 	var cache = NewCache(WithExpire(2*time.Millisecond, time.Millisecond))
 	cache.Set(1, 1, nil)
-	var f1 = cache.Get(1)
+	var f1 = cache.Get1(1)
 
 	time.Sleep(3 * time.Millisecond)
-	var f2 = cache.Get(1)
+	var f2 = cache.Get1(1)
 
 	time.Sleep(2 * time.Millisecond)
-	var f3 = cache.Get(1)
+	var f3 = cache.Get1(1)
 
 	fmt.Printf("f1=%v, f2=%v, f3=%v \n", f1, f2, f3)
 	if f1 != 1 || f2 != 1 || f3 != nil {

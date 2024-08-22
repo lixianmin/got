@@ -1,9 +1,10 @@
 package cachex
 
 import (
-	"github.com/lixianmin/got/loom"
 	"sync"
 	"time"
+
+	"github.com/lixianmin/got/loom"
 )
 
 /********************************************************************
@@ -230,7 +231,7 @@ func (my *cacheImpl) removeRotted() {
 func (my *cacheImpl) getFutureStatus(future *Future) int {
 	if future != nil {
 		var updateTime = future.getUpdateTime()
-		var past = time.Now().Sub(updateTime)
+		var past = time.Since(updateTime)
 
 		var expire = my.args.normalExpire
 		if future.err != nil {
