@@ -2,7 +2,7 @@ package webx
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -37,7 +37,7 @@ func Request(ctx context.Context, method string, url string, options ...Option) 
 		case http.MethodGet:
 			request.URL.RawQuery = payload
 		case http.MethodPost:
-			request.Body = ioutil.NopCloser(strings.NewReader(payload))
+			request.Body = io.NopCloser(strings.NewReader(payload))
 		}
 	}
 
@@ -53,6 +53,6 @@ func Request(ctx context.Context, method string, url string, options ...Option) 
 	var responseBody = response.Body
 	defer responseBody.Close()
 
-	bodyBytes, err3 := ioutil.ReadAll(responseBody)
+	bodyBytes, err3 := io.ReadAll(responseBody)
 	return bodyBytes, err3
 }
