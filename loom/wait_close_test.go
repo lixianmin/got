@@ -1,6 +1,7 @@
 package loom
 
 import (
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -110,4 +111,33 @@ func TestWaitClose_WaitUtil_Closed(t *testing.T) {
 	wc.C()
 	wc.Close(nil)
 	wc.WaitUtil(time.Second)
+}
+
+func TestWaitClose_Close_DeadLock(t *testing.T) {
+	var wc WaitClose
+
+	wc.Close(func() error {
+		wc.Close(nil)
+		return nil
+	})
+
+	wc.WaitUtil(time.Second)
+}
+
+func TestWaitClose_Close_CallbackOnlyOnce(t *testing.T) {
+	var wc WaitClose
+
+	var counter int32
+
+	for i := 0; i < 10; i++ {
+		go wc.Close(func() error {
+			atomic.AddInt32(&counter, 1)
+			return nil
+		})
+	}
+	wc.WaitUtil(time.Second)
+
+	if atomic.LoadInt32(&counter) != 1 {
+		t.Fatalf("counter should be 1, but got %d", atomic.LoadInt32(&counter))
+	}
 }

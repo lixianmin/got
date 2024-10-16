@@ -37,7 +37,6 @@ func (wc *WaitClose) C() chan struct{} {
 	if wcNew == atomic.LoadInt32(&wc.state) {
 		wc.checkInitSlow()
 	}
-	//wc.assetCloseChanNotNil()
 
 	return wc.closeChan
 }
@@ -60,35 +59,35 @@ func (wc *WaitClose) WaitUtil(timeout time.Duration) bool {
 
 // Close 返回的时候，确保callback()方法已经执行完成
 // 2020-10-01：如果callback!=nil，则只要state != closed，就应该执行一下callback()
+// 2024-10-16: 如果callback中又调用了Close，则需要解决死锁问题
 func (wc *WaitClose) Close(callback func() error) error {
-	if wcClosed != atomic.LoadInt32(&wc.state) {
-		wc.mutex.Lock()
-		// 因为有外来的callback方法，所以有可能panic
-		defer func() {
-			wc.mutex.Unlock()
-			if r := recover(); r != nil {
-				fmt.Printf("%v\n", r)
-			}
-		}()
-
-		// 双重检查
-		if wcClosed != wc.state {
-			if wcInitialized == wc.state {
-				close(wc.closeChan)
-			} else {
-				wc.closeChan = globalClosedChan
-			}
-
-			// 即使未初始化的，也直接关闭掉
-			// 2021-06-21 使用defer是为了确保Close()方法返回的时候，callback()方法必然已经执行完成
-			defer atomic.StoreInt32(&wc.state, wcClosed)
-			if callback != nil {
-				return callback()
-			}
-		}
+	// 快速检查是否已关闭
+	if wcClosed == atomic.LoadInt32(&wc.state) {
+		return nil
 	}
 
-	return nil
+	var err error
+	var needCallback bool
+
+	// 第一阶段：尝试获取锁并更新状态
+	wc.mutex.Lock()
+	if wcClosed != wc.state {
+		if wcInitialized == wc.state {
+			close(wc.closeChan)
+		} else {
+			wc.closeChan = globalClosedChan
+		}
+		needCallback = true
+		atomic.StoreInt32(&wc.state, wcClosed)
+	}
+	wc.mutex.Unlock()
+
+	// 第二阶段：如果需要，在锁外执行回调
+	if needCallback && callback != nil {
+		err = safeCallback(callback)
+	}
+
+	return err
 }
 
 func (wc *WaitClose) IsClosed() bool {
@@ -108,10 +107,16 @@ func (wc *WaitClose) checkInitSlow() {
 	wc.mutex.Unlock()
 }
 
-func (wc *WaitClose) assetCloseChanNotNil() {
-	// 下面这个断言有可能失败，好奇怪
-	if wc.closeChan == nil {
-		var message = fmt.Sprintf("closeChan is nil, state=%d, state=%d", wc.state, atomic.LoadInt32(&wc.state))
-		panic(message)
-	}
+func safeCallback(callback func() error) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("Panic in callback: %v\n", r)
+			if e, ok := r.(error); ok {
+				err = e
+			} else {
+				err = fmt.Errorf("panic in callback: %v", r)
+			}
+		}
+	}()
+	return callback()
 }
