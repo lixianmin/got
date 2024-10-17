@@ -33,7 +33,7 @@ type WaitClose struct {
 	state     int32
 }
 
-func (wc *WaitClose) C() chan struct{} {
+func (wc *WaitClose) C() <-chan struct{} {
 	if wcNew == atomic.LoadInt32(&wc.state) {
 		wc.checkInitSlow()
 	}
@@ -45,14 +45,11 @@ func (wc *WaitClose) WaitUtil(timeout time.Duration) bool {
 	if wcNew == atomic.LoadInt32(&wc.state) {
 		wc.checkInitSlow()
 	}
-	//wc.assetCloseChanNotNil()
 
-	var timer = time.NewTimer(timeout)
 	select {
 	case <-wc.closeChan:
-		timer.Stop()
 		return true
-	case <-timer.C:
+	case <-time.After(timeout):
 		return false
 	}
 }
