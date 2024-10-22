@@ -2,8 +2,9 @@ package taskx
 
 import (
 	"fmt"
-	"github.com/lixianmin/got/std"
 	"os"
+
+	"github.com/lixianmin/got/std"
 )
 
 /********************************************************************
@@ -15,7 +16,7 @@ Copyright (C) - All Rights Reserved
 
 type options struct {
 	size      int
-	closeChan chan struct{}
+	closeChan <-chan struct{}
 	errLogger std.Logger
 }
 
@@ -54,7 +55,7 @@ func WithSize(size int) Option {
 	}
 }
 
-func WithCloseChan(c chan struct{}) Option {
+func WithCloseChan(c <-chan struct{}) Option {
 	return func(opts *options) {
 		if c != nil {
 			opts.closeChan = c

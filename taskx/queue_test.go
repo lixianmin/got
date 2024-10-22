@@ -2,9 +2,10 @@ package taskx
 
 import (
 	"fmt"
-	"github.com/lixianmin/got/loom"
 	"testing"
 	"time"
+
+	"github.com/lixianmin/got/loom"
 )
 
 /********************************************************************

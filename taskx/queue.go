@@ -1,8 +1,9 @@
 package taskx
 
 import (
-	"github.com/lixianmin/got/std"
 	"time"
+
+	"github.com/lixianmin/got/std"
 )
 
 /********************************************************************
@@ -21,7 +22,7 @@ var globalDelayedQueue = newDelayedQueue()
 type Handler func(args any) (any, error)
 
 type Queue struct {
-	closeChan chan struct{}
+	closeChan <-chan struct{}
 	C         chan Task
 	errLogger std.Logger
 }
